@@ -34,6 +34,9 @@ typedef struct _PPU {
   uint16_t addr;
   uint8_t data;
   uint8_t oamdma;
+  
+  uint8_t upperAddr;
+  uint8_t lowerAddr;
 
   // 0 -  vertical arrangement
   // 1 - horizontal arrangement 
@@ -92,13 +95,14 @@ void populatePalette(PPU*);
 
 // render scanline merely parses the internal registers of the PPU and renders a scanline to a memory buffer
 void renderScanline(PPU*);
-void appendScanline(PPU*, int);
+void appendScanline(PPU*);
 void vblankToggle(PPU*);
 void vblankStart(Bus*);
 void vblankEnd(Bus*);
 
 void allocateNewFrameBuffer(PPU*);
 
+void printNameTable(Bus*);
 
 // draws the completed framebuffer to screen in SDL
 void drawFrameBuffer(PPU*, SDL_Renderer*);

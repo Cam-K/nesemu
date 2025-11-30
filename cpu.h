@@ -29,7 +29,7 @@ typedef struct _CPU {
   uint16_t pc; 
   uint16_t addrBus;
   uint8_t dataBus;
-  uint64_t cycles;
+  int cycles;
 
   // processor flags
   uint8_t pf; 
@@ -37,6 +37,7 @@ typedef struct _CPU {
 
   // used for the calculation of the carry flag
   uint8_t prevpf; 
+  
 
 
 }CPU;

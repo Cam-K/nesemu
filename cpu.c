@@ -35,6 +35,8 @@ void reset(CPU* cpu, Bus* bus){
     
     bus->controller1 = 0xff;
     bus->controller2 = 0xff;
+    
+    cpu->cycles = 0;
     //printf("cpu->pc %x \n", cpu->pc);
     
 
@@ -51,7 +53,7 @@ int nmi(CPU* cpu, Bus* bus){
   printf("NMI triggered! \n");
 
   uint16_t temp;
-  printf("cpu->pc at nmi %x \n", cpu->pc);
+  //printf("cpu->pc at nmi %x \n", cpu->pc);
 
   // push the msb and lsb of the program counter onto the stack
   pushStack(cpu, bus, (uint8_t)((cpu->pc & 0xff00) >> 8));
@@ -59,7 +61,7 @@ int nmi(CPU* cpu, Bus* bus){
   pushStack(cpu, bus, (uint8_t)(cpu->pc & 0x00ff));
 
   // pushes the processor flags onto the stack
-  printf("CPU->pf %x \n", cpu->pf);
+  //printf("CPU->pf %x \n", cpu->pf);
   pushStack(cpu, bus, cpu->pf);
 
   // sets the interupt disable flag
@@ -124,7 +126,7 @@ int irq(CPU* cpu, Bus* bus){
 // returns how many cycles have been executed
 int decodeAndExecute(CPU* cpu, Bus* bus, uint8_t oppCode){
   int cyclesCompleted;
-  printf("\t Executing oppcode: %x at %x \n", oppCode, cpu->pc);
+  //printf("\t Executing oppcode: %x at %x \n", oppCode, cpu->pc);
   switch(oppCode){
     case 0x00:
       cyclesCompleted = brki(cpu, bus);
@@ -870,7 +872,7 @@ int bne(CPU* cpu, Bus* bus){
 
   offset = addressModeDecode(cpu, bus, relative);
 
-  if(getBit(cpu->pf, Z) != 0){
+  if(getBit(cpu->pf, Z) == 0){
     cpu->pc += offset;
     cycles = 3;
   }
@@ -1510,7 +1512,7 @@ int rti(CPU* cpu, Bus* bus){
   cpu->pf = setBit(cpu->pf, U);
   cpu->pc = (uint16_t)popStack(cpu, bus);
   cpu->pc = (cpu->pc | (((uint16_t)popStack(cpu, bus)) << 8));
-  printf("cpu->pc after popping %x \n", cpu->pc);
+  //printf("cpu->pc after popping %x \n", cpu->pc);
 
 
   // clears the brk flag
@@ -1882,6 +1884,7 @@ uint8_t addressModeDecode(CPU* cpu, Bus* bus, AddrMode mode){
 void pushStack(CPU* cpu, Bus* bus, uint8_t val){
   //printf("Pushing %d onto stack \n", val);
   writeBus(bus, 0x0100 | ((uint16_t)cpu->sp), val);
+  //printf("%d %d \n", 0x0100 | ((uint16_t)cpu->sp), val);
   cpu->sp--;
 }
 

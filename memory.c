@@ -123,6 +123,7 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
 // hard-coded for nes memory map
 // does not make use of the bounds checking of the starAddr and endAddr for each Mem struct
 void writeBus(Bus* bus, uint16_t addr, uint8_t val){
+  int prevVal;
   
   if(addr >= 0 && addr <= 0x07ff){
     bus->memArr[0].contents[addr] = val;
@@ -142,9 +143,11 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         break;
       case 0x2002:
         //printf("writing status");
+        printf("PPUSTATUS write \n");
         bus->ppu->status = val;
         break;
       case 0x2003:
+        printf("OAMDATA write \n");
         bus->ppu->oamaddr = val;
         break;
       case 0x2004:
@@ -153,7 +156,7 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         break;
       case 0x2005:
         if(bus->ppu->wregister == 1){
-          bus->ppu->scroll = bus->ppu->scroll | val;
+          bus->ppu->scroll = bus->ppu->scroll | (uint16_t) val;
           bus->ppu->wregister = 0;
         } else if(bus->ppu->wregister == 0){
           bus->ppu->scroll = bus->ppu->scroll | (((uint16_t)val) << 8);
@@ -161,16 +164,35 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         }
         break;
       case 0x2006:
-         if(bus->ppu->wregister == 1){
-          bus->ppu->addr = bus->ppu->addr | val;
-          bus->ppu->wregister = 0;
-        } else if(bus->ppu->wregister == 0){
-          bus->ppu->addr = bus->ppu->addr | (((uint16_t)val) << 8);
+        printf("Writing to bus at $2006 with %x \n", val);
+
+         if(bus->ppu->wregister == 0){
+          bus->ppu->addr = (((uint16_t)val) << 8);
           bus->ppu->wregister = 1;
+          bus->ppu->upperAddr = val;
+        } else if(bus->ppu->wregister == 1){
+          bus->ppu->addr = bus->ppu->addr | (uint16_t)val;
+          bus->ppu->lowerAddr = val;
+          bus->ppu->wregister = 0;
         }
+        
         break;
       case 0x2007:
+        
         bus->ppu->data = val;
+        int overflowFlag;
+        //printf("Writing to bus at $2007 \n");
+        writePpuBus(bus->ppu, bus->ppu->addr, bus->ppu->data);
+        //printf("Wrote to %x with value %x \n", bus->ppu->addr, bus->ppu->data);
+        prevVal = bus->ppu->lowerAddr;
+        if(getBit(bus->ppu->ctrl, 2) == 0){
+          bus->ppu->lowerAddr++;
+          bus->ppu->addr++;
+          
+        } else if(getBit(bus->ppu->ctrl, 2) != 0){
+          bus->ppu->addr += 32;
+          bus->ppu->lowerAddr += 32;
+        }
         break;
     }
   } else if(addr == 0x4014){
@@ -349,6 +371,7 @@ uint8_t readPpuBus(PPU* ppu, uint16_t addr){
 
 
 void writePpuBus(PPU* ppu, uint16_t addr, uint8_t val){
+  //printf("Writing to PPU address %x \n", addr);
   if(addr >= 0x0000 && addr <= 0x1fff){
     ppu->chrrom[addr] = val;
   } else if(addr >= 0x2000 && addr <= 0x2fff){

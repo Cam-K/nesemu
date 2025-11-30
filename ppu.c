@@ -4,6 +4,7 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
 
+#include "ansicolor.h"
 
 
 void initPpu(PPU* ppu){
@@ -11,7 +12,7 @@ void initPpu(PPU* ppu){
   ppu->chrrom = malloc(sizeof(uint8_t) * 8192);
   ppu->oam = malloc(sizeof(uint8_t) * 64 * 4);
   ppu->paletteram = malloc(sizeof(uint8_t) * 32);
-  ppu->vram = malloc(sizeof(uint8_t) * 2048);
+  ppu->vram = calloc(2048, sizeof(uint8_t));
   ppu->scanlineBuffer = malloc(sizeof(uint32_t) * WINDOW_WIDTH);
 
   printf("initializing PPU \n");
@@ -56,6 +57,9 @@ void resetPpu(PPU* ppu, int powerFlag){
 
   ppu->scanLine = 0;
   ppu->frames = 0;
+  
+  ppu->lowerAddr = 0;
+  ppu->upperAddr = 0;
 
 }
 
@@ -150,10 +154,11 @@ void populatePalette(PPU* ppu){
 void drawFrameBuffer(PPU* ppu, SDL_Renderer* renderer){
   //printf("drawing framebuffer \n");
 
-  for(int i = 0; i < 0x1d; ++i){
-    for(int j = 0; j < 0x1f; ++j){
+  for(int i = 0; i < 0x1f; ++i){
+    for(int j = 0; j < 0x20; ++j){
       SDL_SetRenderDrawColor(renderer, (ppu->frameBuffer[i][j] & 0xff0000) >> 16, (ppu->frameBuffer[i][j] & 0xff00) >> 8, (ppu->frameBuffer[i][j] & 0xff), 255);
       SDL_RenderDrawPoint(renderer, j, i);
+
     }
   }
   SDL_RenderPresent(renderer);
@@ -161,6 +166,24 @@ void drawFrameBuffer(PPU* ppu, SDL_Renderer* renderer){
 
 }
 
+void printNameTable(Bus* bus){
+
+
+  for(int i = 0; i < 0x1f; ++i){
+    printf("%x ", i);
+    for(int j = 0; j < 0x20; ++j){
+      if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) == 0x62){
+         red(); 
+      } else if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) != 0x24){
+        yellow();
+      }
+      printf("%x ", readPpuBus(bus->ppu, 0x2000 + j + (32 * i)));
+      default_color(); 
+    }
+    printf("\n");
+  }
+
+}
 
 
 // renderScanline()
@@ -173,7 +196,7 @@ void drawFrameBuffer(PPU* ppu, SDL_Renderer* renderer){
 void renderScanline(PPU* ppu){
   uint8_t currentIndiceBitPlane1;
   uint8_t currentIndiceBitPlane2;
-  uint8_t nameTableIndice;
+  uint8_t patternTableIndice;
   int pixelXBitPlane1;
   int pixelXBitPlane2;
   uint8_t pixelValue1;
@@ -188,11 +211,11 @@ void renderScanline(PPU* ppu){
   tempPalette[2] = 0x27;
   tempPalette[3] = 0x2a;
 
-  for(int i = 0; i < 0x1f; ++i){
+  for(int i = 0; i < 0x20; ++i){
     // Fetch a nametable entry from $2000-$2FFF.
     // i / 8 because it increments 1 for every 8 pixels, which is what we want to do if we are fetching a different 
     // pattern table every 8 pixels (width of nametable entries is 8 pixels)
-    nameTableIndice = readPpuBus(ppu, (uint8_t)(0x2000 + i));
+    patternTableIndice = readPpuBus(ppu, (0x2000 + i) + ((uint8_t)(ppu->scanLine / 8) * 32));
     
     pixelXBitPlane1 = i % 8;
     pixelXBitPlane2 = (i % 8) + 8;
@@ -209,8 +232,13 @@ void renderScanline(PPU* ppu){
 
     // get pallette information for pixel
     // TODO: Currently just trying to render the nametables itself, irresepctive of the pattern and attribute tables
-    if(nameTableIndice == 0x24){
+    //printf("patterntable indice %x for %x \n", patternTableIndice, (0x2000 + i) + ((uint8_t)(ppu->scanLine / 8) * 32));
+    if(patternTableIndice == 0x24){
       thirtytwobitPixelColour = 0x000000;
+    } else if(patternTableIndice == 0x62){
+      
+      thirtytwobitPixelColour = 0x0000ff;
+      
     } else {
       thirtytwobitPixelColour = 0xffffff;
     }
@@ -299,10 +327,11 @@ void vblankToggle(PPU* ppu){
 //   inputs:
 //     ppu - ppu to render a scanline with 
 //
-void appendScanline(PPU* ppu, int scanLine){
+void appendScanline(PPU* ppu){
 
-  for(int i = 0; i < 0x1f; ++i){
-    ppu->frameBuffer[scanLine][i] = ppu->scanlineBuffer[i];
+  // segfault on ppu->scanLine = 240 occurs here
+  for(int i = 0; i < 0x20; ++i){
+    ppu->frameBuffer[ppu->scanLine][i] = ppu->scanlineBuffer[i];
   }
 
   //free(ppu->scanlineBuffer);
