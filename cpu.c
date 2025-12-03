@@ -53,7 +53,7 @@ int nmi(CPU* cpu, Bus* bus){
   printf("NMI triggered! \n");
 
   uint16_t temp;
-  //printf("cpu->pc at nmi %x \n", cpu->pc);
+  printf("cpu->pc at nmi %x \n", cpu->pc);
 
   // push the msb and lsb of the program counter onto the stack
   pushStack(cpu, bus, (uint8_t)((cpu->pc & 0xff00) >> 8));
@@ -1511,7 +1511,7 @@ int rti(CPU* cpu, Bus* bus){
   cpu->pf = setBit(cpu->pf, U);
   cpu->pc = (uint16_t)popStack(cpu, bus);
   cpu->pc = (cpu->pc | (((uint16_t)popStack(cpu, bus)) << 8));
-  //printf("cpu->pc after popping in rti: %x \n", cpu->pc);
+  printf("cpu->pc after popping in rti: %x \n", cpu->pc);
 
 
   // clears the brk flag

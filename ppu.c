@@ -57,9 +57,9 @@ void resetPpu(PPU* ppu, int powerFlag){
 
   ppu->scanLine = 0;
   ppu->frames = 0;
+  ppu->vregister1 = 0;
+  ppu->vregister2 = 0;
   
-  ppu->lowerAddr = 0;
-  ppu->upperAddr = 0;
 
 }
 
@@ -76,7 +76,8 @@ void parsePatterntables(uint8_t*){
 
 }
 
-// hard-coding rgb values for each of the nes' 64 colours
+// populatePalette()
+//   hard-coding 24-bit rgb values for each of the nes' 64 colours
 void populatePalette(PPU* ppu){
   printf("Populating palette... \n");
   ppu->palette[0] = 0x7C7C7C;
@@ -187,16 +188,18 @@ void printNameTable(Bus* bus){
 }
 
 
+
 // renderScanline()
 //   renders a scanline with the given registers 
 //   inputs:
 //     ppu - ppu to render a scanline with 
 //
-// how this function should work:
-// - parse 
+
 void renderScanline(PPU* ppu){
   uint8_t currentIndiceBitPlane1;
   uint8_t currentIndiceBitPlane2;
+  int attributeTableQuandrant;
+  uint8_t attributeTableByte;
   uint16_t patternTableIndice;
   uint8_t bitPlane1;
   uint8_t bitPlane2;
@@ -216,37 +219,45 @@ void renderScanline(PPU* ppu){
   tempPalette[2] = 0x38;
   tempPalette[3] = 0x12;
 
-  /*
-  // CODE FOR RENDERING NAMETABLES ONLY
-  for(int i = 0; i < 0x20; ++i){
-    // Fetch a nametable entry from $2000-$2FFF.
-    // i / 8 because it increments 1 for every 8 pixels, which is what we want to do if we are fetching a different 
-    // pattern table every 8 pixels (width of nametable entries is 8 pixels)
-    patternTableIndice = readPpuBus(ppu, (0x2000 + i) + ((uint8_t)(ppu->scanLine) * 32));
-    
-    if(patternTableIndice == 0x24){
-      thirtytwobitPixelColour = 0x000000;
-    } else if(patternTableIndice == 0x62){
-      
-      thirtytwobitPixelColour = 0x0000ff;
-      
-    } else {
-      thirtytwobitPixelColour = 0xffffff;
-    }
-    ppu->scanlineBuffer[i] = thirtytwobitPixelColour;
-    
-    
 
-  }
-  */
    if(getBit(ppu->ctrl, 4) == 0){
      offset = 0;
     } else if (getBit(ppu->ctrl, 4) != 0){
      offset = 0x1000;
     }
+    
  
   for(int i = 0; i < WINDOW_WIDTH; ++i){
+    // fetch nametable entry
     patternTableIndice = readPpuBus(ppu, (0x2000 + (uint16_t)(i / 8)) + ((int)(ppu->scanLine / 8) * 32));
+    
+    ppu->vregister2 = (uint16_t)(i / 8) + ((int)(ppu->scanLine / 8) * 32);
+   //printf("vregistger2 %x \n", ppu->vregister2);
+   //printf("formula %x \n",  0x23c0 | (ppu->vregister2 & 0x0c00) | ((ppu->vregister2 >> 4) & 0x38) | ((ppu->vregister2 >> 2) & 0x07));
+    // fetch attributetable byte using formula
+    attributeTableByte = readPpuBus(ppu, 0x23c0 | (ppu->vregister2 & 0x0c00) | ((ppu->vregister2 >> 4) & 0x38) | ((ppu->vregister2 >> 2) & 0x07));
+    attributeTableQuandrant = getAttributeQuadrant(i, ppu->scanLine);
+
+    if(attributeTableQuandrant == 0){
+      attributeTableByte = attributeTableByte & 0b11;
+    } else if (attributeTableQuandrant == 1){
+      attributeTableByte = attributeTableByte & 0b1100;
+      attributeTableByte = attributeTableByte >> 2;
+    } else if(attributeTableQuandrant == 2){
+      attributeTableByte = attributeTableByte & 0b110000;
+      attributeTableByte = attributeTableByte >> 4;
+    } else if(attributeTableQuandrant == 3){
+      attributeTableByte = attributeTableByte & 0b11000000;
+      attributeTableByte = attributeTableByte >> 6;
+    }
+
+
+    tempPalette[0] = readPpuBus(ppu, 0x3f00 + 0 + (attributeTableByte * 4));
+    tempPalette[1] = readPpuBus(ppu, 0x3f00 + 1 + (attributeTableByte * 4));
+    tempPalette[2] = readPpuBus(ppu, 0x3f00 + 2 + (attributeTableByte * 4));
+    tempPalette[3] = readPpuBus(ppu, 0x3f00 + 3 + (attributeTableByte * 4));
+
+
     
 
     // patternTableIndice << 4 because this will yield 0x0ff0 when you left shift 0xff for instance
@@ -300,7 +311,10 @@ void vblankStart(Bus* bus){
   
   bus->ppu->status = setBit(bus->ppu->status, 7);
   bus->ppu->vblank = 1;
-  nmi(bus->cpu, bus);
+  // checks vblank enable bit
+  if(getBit(bus->ppu->ctrl, 7) == 0b10000000){
+    nmi(bus->cpu, bus);
+  }
 
   writePpuBus(bus->ppu, bus->ppu->addr, bus->ppu->data);
 }
@@ -351,6 +365,184 @@ void appendScanline(PPU* ppu){
     ppu->frameBuffer[ppu->scanLine][i] = ppu->scanlineBuffer[i];
   }
 
-  //free(ppu->scanlineBuffer);
-  //ppu->scanlineBuffer = malloc(sizeof(uint32_t) * WINDOW_WIDTH);
+ 
+}
+
+
+// getAttributeQuadrant()
+//   returns the numbered quadrant that the beam is in
+//   with each quadrant being a 32x32 pixel (4x4 tile) mapped onto a 256x240 pixel cartesian system 
+// inputs
+//   x - x coordinate
+//   y - y coordinate
+// outputs
+//   int - quadrant number of corresponding beam position
+/*
+ * 
+
+     0  |  1
+    ----------
+     2  |  3
+
+
+ */
+
+int getAttributeQuadrant(int x, int y){
+
+  int quadrant;
+  
+  if(x <= 31){
+    if(y <= 31){
+      quadrant = 0;
+    } else if(y > 31 && y <= 63){
+      quadrant = 2;
+    } else if(y > 63 && y <= 95){
+      quadrant = 0;
+    } else if(y > 95 && y <= 127){
+      quadrant = 2;
+    } else if(y > 127 && y <= 159){
+      quadrant = 0;
+    } else if(y > 159 && y <= 191){
+      quadrant = 2;
+    } else if(y > 191 && y <= 223){
+      quadrant = 0;
+    } else if(y > 223 && y <= 255){
+      quadrant = 2;
+    }
+  } else if(x > 31 && x <= 63){
+
+    if(y <= 31){
+      quadrant = 1;
+    } else if(y > 31 && y <= 63){
+      quadrant = 3;
+    } else if(y > 63 && y <= 95){
+      quadrant = 1;
+    } else if(y > 95 && y <= 127){
+      quadrant = 3;
+    } else if(y > 127 && y <= 159){
+      quadrant = 1;
+    } else if(y > 159 && y <= 191){
+      quadrant = 3;
+    } else if(y > 191 && y <= 223){
+      quadrant = 1;
+    } else if(y > 223 && y <= 255){
+      quadrant = 3;
+    }
+
+  } else if(x > 63 && x <= 95){
+    if(y <= 31){
+      quadrant = 0;
+    } else if(y > 31 && y <= 63){
+      quadrant = 2;
+    } else if(y > 63 && y <= 95){
+      quadrant = 0;
+    } else if(y > 95 && y <= 127){
+      quadrant = 2;
+    } else if(y > 127 && y <= 159){
+      quadrant = 0;
+    } else if(y > 159 && y <= 191){
+      quadrant = 2;
+    } else if(y > 191 && y <= 223){
+      quadrant = 0;
+    } else if(y > 223 && y <= 255){
+      quadrant = 2;
+    }
+
+  } else if(x > 95 && x <= 127){
+    if(y <= 31){
+      quadrant = 1;
+    } else if(y > 31 && y <= 63){
+      quadrant = 3;
+    } else if(y > 63 && y <= 95){
+      quadrant = 1;
+    } else if(y > 95 && y <= 127){
+      quadrant = 3;
+    } else if(y > 127 && y <= 159){
+      quadrant = 1;
+    } else if(y > 159 && y <= 191){
+      quadrant = 3;
+    } else if(y > 191 && y <= 223){
+      quadrant = 1;
+    } else if(y > 223 && y <= 255){
+      quadrant = 3;
+    }
+
+  } else if(x > 127 && x <= 159){
+    if(y <= 31){
+      quadrant = 0;
+    } else if(y > 31 && y <= 63){
+      quadrant = 2;
+    } else if(y > 63 && y <= 95){
+      quadrant = 0;
+    } else if(y > 95 && y <= 127){
+      quadrant = 2;
+    } else if(y > 127 && y <= 159){
+      quadrant = 0;
+    } else if(y > 159 && y <= 191){
+      quadrant = 2;
+    } else if(y > 191 && y <= 223){
+      quadrant = 0;
+    } else if(y > 223 && y <= 255){
+      quadrant = 2;
+    }
+  } else if(x > 159 && x <= 191){
+    if(y <= 31){
+      quadrant = 1;
+    } else if(y > 31 && y <= 63){
+      quadrant = 3;
+    } else if(y > 63 && y <= 95){
+      quadrant = 1;
+    } else if(y > 95 && y <= 127){
+      quadrant = 3;
+    } else if(y > 127 && y <= 159){
+      quadrant = 1;
+    } else if(y > 159 && y <= 191){
+      quadrant = 3;
+    } else if(y > 191 && y <= 223){
+      quadrant = 1;
+    } else if(y > 223 && y <= 255){
+      quadrant = 3;
+    }
+  } else if(x > 191 && x <= 223){
+    if(y <= 31){
+      quadrant = 0;
+    } else if(y > 31 && y <= 63){
+      quadrant = 2;
+    } else if(y > 63 && y <= 95){
+      quadrant = 0;
+    } else if(y > 95 && y <= 127){
+      quadrant = 2;
+    } else if(y > 127 && y <= 159){
+      quadrant = 0;
+    } else if(y > 159 && y <= 191){
+      quadrant = 2;
+    } else if(y > 191 && y <= 223){
+      quadrant = 0;
+    } else if(y > 223 && y <= 255){
+      quadrant = 2;
+    }
+  } else if(x > 223 && x <= 255){
+    if(y <= 31){
+      quadrant = 1;
+    } else if(y > 31 && y <= 63){
+      quadrant = 3;
+    } else if(y > 63 && y <= 95){
+      quadrant = 1;
+    } else if(y > 95 && y <= 127){
+      quadrant = 3;
+    } else if(y > 127 && y <= 159){
+      quadrant = 1;
+    } else if(y > 159 && y <= 191){
+      quadrant = 3;
+    } else if(y > 191 && y <= 223){
+      quadrant = 1;
+    } else if(y > 223 && y <= 255){
+      quadrant = 3;
+    }
+  }
+
+
+  return quadrant;
+
+  
 }

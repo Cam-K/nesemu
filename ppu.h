@@ -35,8 +35,6 @@ typedef struct _PPU {
   uint8_t data;
   uint8_t oamdma;
   
-  uint8_t upperAddr;
-  uint8_t lowerAddr;
 
   // 0 -  vertical arrangement
   // 1 - horizontal arrangement 
@@ -65,6 +63,12 @@ typedef struct _PPU {
   // 1 - 2nd read
   // this register is used when demultiplexing PPUSCROLL and PPUADDR
   int wregister; 
+  
+  // used to hold the ppu address 
+  uint16_t vregister1;
+  
+  // holds the currently drawn nametable address
+  uint16_t vregister2;
 
 
   // variable to track whether the nes is in vertical blanking or not
@@ -103,6 +107,8 @@ void vblankEnd(Bus*);
 void allocateNewFrameBuffer(PPU*);
 
 void printNameTable(Bus*);
+
+int getAttributeQuadrant(int, int);
 
 // draws the completed framebuffer to screen in SDL
 void drawFrameBuffer(PPU*, SDL_Renderer*);

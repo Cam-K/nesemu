@@ -163,10 +163,10 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         //printf("Writing to bus at $2006 with %x \n", val);
 
          if(bus->ppu->wregister == 0){
-          bus->ppu->addr = (((uint16_t)val) << 8);
+          bus->ppu->vregister1 = (((uint16_t)val) << 8);
           bus->ppu->wregister = 1;
         } else if(bus->ppu->wregister == 1){
-          bus->ppu->addr = bus->ppu->addr | (uint16_t)val;
+          bus->ppu->vregister1 = bus->ppu->vregister1 | (uint16_t)val;
           bus->ppu->wregister = 0;
         }
         
@@ -176,13 +176,13 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         bus->ppu->data = val;
         int overflowFlag;
         //printf("Writing to bus at $2007 \n");
-        writePpuBus(bus->ppu, bus->ppu->addr, bus->ppu->data);
-        printf("Wrote to ppu bus %x with value %x \n", bus->ppu->addr, bus->ppu->data);
+        writePpuBus(bus->ppu, bus->ppu->vregister1, bus->ppu->data);
+        printf("Wrote to ppu bus %x with value %x \n", bus->ppu->vregister1, bus->ppu->data);
         if(getBit(bus->ppu->ctrl, 2) == 0){
-          bus->ppu->addr++;
+          bus->ppu->vregister1++;
           
         } else if(getBit(bus->ppu->ctrl, 2) != 0){
-          bus->ppu->addr += 32;
+          bus->ppu->vregister1 += 32;
         }
         break;
     }
