@@ -111,4 +111,4 @@ void printNameTable(Bus*);
 int getAttributeQuadrant(int, int);
 
 // draws the completed framebuffer to screen in SDL
-void drawFrameBuffer(PPU*, SDL_Renderer*);
+void drawFrameBuffer(PPU*, SDL_Renderer*, SDL_Texture*);

@@ -33,13 +33,27 @@ void reset(CPU* cpu, Bus* bus){
     //reads upper byte (little endian)
     cpu->pc = cpu->pc | ((uint16_t)readBus(bus, 0xfffd) << 8);
     
-    bus->controller1 = 0xff;
-    bus->controller2 = 0xff;
+    bus->controller1.strobe = 0;
+    bus->controller1.strobeCount = 0;
+    bus->controller1.buttons = 0x00;
+    bus->controller2.buttons = 0x00;
+    cpu->nmiInterruptFlag = 0;
     
     cpu->cycles = 0;
     //printf("cpu->pc %x \n", cpu->pc);
     
 
+}
+
+void triggerNmi(CPU* cpu){
+  cpu->nmiInterruptFlag = 1;
+}
+
+void checkForInterrupts(CPU* cpu, Bus* bus){
+  if(cpu->nmiInterruptFlag == 1){
+    nmi(cpu, bus);
+    cpu->nmiInterruptFlag = 0;
+  } 
 }
 
 
@@ -50,10 +64,10 @@ void reset(CPU* cpu, Bus* bus){
 //
 //
 int nmi(CPU* cpu, Bus* bus){
-  printf("NMI triggered! \n");
+  //printf("NMI triggered! \n");
 
   uint16_t temp;
-  printf("cpu->pc at nmi %x \n", cpu->pc);
+  //printf("cpu->pc at nmi %x \n", cpu->pc);
 
   // push the msb and lsb of the program counter onto the stack
   pushStack(cpu, bus, (uint8_t)((cpu->pc & 0xff00) >> 8));
@@ -622,6 +636,7 @@ int adc(CPU* cpu, Bus* bus, AddrMode mode){
   //printf("cpu->a: %d \n", prevA);
 
   // NV-BDIZC
+
   checkVFlag(cpu, value, prevA, ADD);
   checkCFlag(cpu, value, prevA, ADD);
   checkZFlag(cpu, cpu->a);
@@ -804,7 +819,7 @@ int beq(CPU* cpu, Bus* bus){
   uint16_t page;
 
   offset = addressModeDecode(cpu, bus, relative);
-  if(getBit(cpu->pf, Z)){
+  if(getBit(cpu->pf, Z) != 0){
     cpu->pc += offset;
   }
   cpu->pc++;
@@ -1511,7 +1526,7 @@ int rti(CPU* cpu, Bus* bus){
   cpu->pf = setBit(cpu->pf, U);
   cpu->pc = (uint16_t)popStack(cpu, bus);
   cpu->pc = (cpu->pc | (((uint16_t)popStack(cpu, bus)) << 8));
-  printf("cpu->pc after popping in rti: %x \n", cpu->pc);
+  //printf("cpu->pc after popping in rti: %x \n", cpu->pc);
 
 
   // clears the brk flag
@@ -1881,15 +1896,12 @@ uint8_t addressModeDecode(CPU* cpu, Bus* bus, AddrMode mode){
 
 
 void pushStack(CPU* cpu, Bus* bus, uint8_t val){
-  //printf("Pushing %d onto stack \n", val);
   writeBus(bus, 0x0100 | ((uint16_t)cpu->sp), val);
-  //printf("%d %d \n", 0x0100 | ((uint16_t)cpu->sp), val);
   cpu->sp--;
 }
 
 uint8_t popStack(CPU* cpu, Bus* bus){
   uint8_t temp = readBus(bus, 0x0100 | ((uint16_t)(++cpu->sp)));
-  //printf("Popping %x from the stack \n", temp);
   return temp;
 }
 
@@ -1912,81 +1924,29 @@ void checkNFlag(CPU* cpu, uint8_t val){
 
 void checkVFlag(CPU* cpu, uint8_t val, uint8_t prevVal, uint8_t operationFlag){
   
-  // int8_t tempVal, prevTempVal;
-  // tempVal = val;
-  // prevTempVal = prevVal;
-  // //printf("val: %d \n prevVal: %d \n", (uint8_t)tempVal, (uint8_t)prevTempVal);
-  // if(tempVal < prevTempVal){
-  //   //printf("Setting overflow.. \n");
-  //   cpu->pf = setBit(cpu->pf, V);
-  // } else {
-  //   //printf("clearing overflow.. \n");
-  //   cpu->pf = clearBit(cpu->pf, V);
-  // } 
-  //
-  //
-  //
-  //
- 
+
 
   uint8_t bit1;
   uint8_t bit2;
   uint8_t carry;
   uint8_t prevcpupf = cpu->pf;
   uint8_t c6;
+  uint8_t c7;
   uint8_t m7;
   uint8_t n7;
   uint8_t cf = 0;
-  for(int i = 0; i <= 6; ++i){
-    bit1 = getBit(val, i) >> i; 
-    bit2 = getBit(prevVal, i) >> i; 
-    //printf("iteration %d \n", i);
-    //printf("bit1 %d \n", bit1);
-    //printf("bit2 %d \n", bit2);
-    //printf("carry %d \n", carry);
-    //printf("cpu->pf C flag: %d \n", getBit(prevcpupf, C));
-    //printf("cpu->pf %d \n", prevcpupf);
-    if((i == 0) && (getBit(prevcpupf, C) == 1)){
-      carry = 1;
-    } 
 
-    //printf("Iteration %d \n", i);
-    //printf("\t carry %d \n", carry);
-    //printf("\t bit1 %d \n", bit1);
-    //printf("\t bit2 %d \n", bit2);
+  if(operationFlag == SUB || operationFlag == ADD){
+    cf = (~(prevVal ^ val) & (prevVal ^ cpu->a)) & 0x80;
 
-    if(bit1 + bit2 + carry >= 2){
-      carry = 1;
+
+    if(cf != 0){
+      cpu->pf = setBit(cpu->pf, V);
     } else {
-      carry = 0;
+      cpu->pf = clearBit(cpu->pf, V);
     }
   }
-
-  c6 = carry;
-  m7 = getBit(val, 7) >> 7;
-  n7 = getBit(prevVal, 7) >> 7;
-  //printf("c6 = %d \n", c6);
-  //printf("m7 = %d \n", m7);
-  //printf("n7 = %d \n", n7);
-  //
-  if(operationFlag == ADD){
-    cf = (!m7 & !n7 & c6) | (m7 & n7 & !c6);
-  } else if(operationFlag == SUB) {
-    // note: this is the same formula for subtraction since we've implemented
-    // sbc by just getting the ones complement and adding it
-    //
-    // because of this, the formula is the same. 
-    cf = (!m7 & !n7 & c6) | (m7 & n7 & !c6);
-  }
   
-
-  //cf != 1 ? (cpu->pf = setBit(cpu->pf, V)) : (cpu->pf = clearBit(cpu->pf, V));
-
-  if(cf == 1){
-    cpu->pf = setBit(cpu->pf, V);
-  } else {
-    cpu->pf = clearBit(cpu->pf, V);
-  }
 }
 
 // special checkVFlag function specifically made for the bit instruction since

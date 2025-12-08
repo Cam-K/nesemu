@@ -1,4 +1,5 @@
 #include "ppu.h"
+#include "cpu.h"
 #include "general.h"
 #include "memory.h"
 #include <SDL2/SDL_render.h>
@@ -11,7 +12,7 @@ void initPpu(PPU* ppu){
 
   ppu->chrrom = malloc(sizeof(uint8_t) * 8192);
   ppu->oam = malloc(sizeof(uint8_t) * 64 * 4);
-  ppu->paletteram = malloc(sizeof(uint8_t) * 32);
+  ppu->paletteram = calloc(32, sizeof(uint8_t));
   ppu->vram = calloc(2048, sizeof(uint8_t));
   ppu->scanlineBuffer = malloc(sizeof(uint32_t) * WINDOW_WIDTH);
 
@@ -79,7 +80,6 @@ void parsePatterntables(uint8_t*){
 // populatePalette()
 //   hard-coding 24-bit rgb values for each of the nes' 64 colours
 void populatePalette(PPU* ppu){
-  printf("Populating palette... \n");
   ppu->palette[0] = 0x7C7C7C;
   ppu->palette[1] = 0x0000FC;
   ppu->palette[2] = 0x0000BC;
@@ -144,7 +144,7 @@ void populatePalette(PPU* ppu){
   ppu->palette[61] = 0xF8D8F8;
   ppu->palette[62] = 0x000000;
   ppu->palette[63] = 0x000000;
-  printf("palette populated! \n");
+
 
 
 }
@@ -152,19 +152,27 @@ void populatePalette(PPU* ppu){
 
 // draws Framebuffer to background layer in sdl 
 // also converts the nes colour palette to rgb values when reading from the frame buffer
-void drawFrameBuffer(PPU* ppu, SDL_Renderer* renderer){
+void drawFrameBuffer(PPU* ppu, SDL_Renderer* renderer, SDL_Texture* texture){
   //printf("drawing framebuffer \n");
+  uint32_t *pixels;
+  int* pitch;
+  pitch = malloc(sizeof(int));
+  *pitch = WINDOW_WIDTH;
+
   SDL_RenderClear(renderer);
+  SDL_LockTexture(texture, NULL, (void**)&pixels, pitch);
 
   for(int i = 0; i < WINDOW_HEIGHT; ++i){
     for(int j = 0; j < WINDOW_WIDTH; ++j){
-      SDL_SetRenderDrawColor(renderer, (ppu->frameBuffer[i][j] & 0xff0000) >> 16, (ppu->frameBuffer[i][j] & 0xff00) >> 8, (ppu->frameBuffer[i][j] & 0xff), 255);
-      SDL_RenderDrawPoint(renderer, j, i);
+      pixels[(i * WINDOW_WIDTH) + j] = ppu->frameBuffer[i][j];
 
     }
   }
+  SDL_UnlockTexture(texture);
+  SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
-  allocateNewFrameBuffer(ppu);
+  //allocateNewFrameBuffer(ppu);
+  free(pitch);
 
 }
 
@@ -307,12 +315,13 @@ void allocateNewFrameBuffer(PPU* ppu){
 
 void vblankStart(Bus* bus){
   
-  printf("vblank start! \n");
+  //printf("vblank start! \n");
   
   bus->ppu->status = setBit(bus->ppu->status, 7);
   bus->ppu->vblank = 1;
   // checks vblank enable bit
   if(getBit(bus->ppu->ctrl, 7) == 0b10000000){
+    //triggerNmi(bus->cpu);
     nmi(bus->cpu, bus);
   }
 
@@ -322,36 +331,17 @@ void vblankStart(Bus* bus){
 
 
 void vblankEnd(Bus* bus){
-  printf("vblank end! \n");
+  //printf("vblank end! \n");
 
   bus->ppu->status = clearBit(bus->ppu->status, 7);
   bus->ppu->vblank = 0;
   bus->ppu->scanLine = 0;
   bus->ppu->frames++;
 
-}
-
-
-// vblank()
-//  operations that occur during a vblank are in this function
-//   inputs:
-//      ppu - ppu to act upon
-void vblankToggle(PPU* ppu){
-
-
-  if(ppu->vblank == 0){
-    printf("vblank toggled on! \n");
-    ppu->status = setBit(ppu->status, 7);
-    ppu->vblank = 1;
-  } else if(ppu->vblank == 1){
-    printf("vblank toggled off! \n");
-    ppu->status = clearBit(ppu->status, 7);
-    ppu->vblank = 0;
-  }
-  
-  
 
 }
+
+
 
 // appendScanline()
 //   appends the scanline buffer to the framebuffer 

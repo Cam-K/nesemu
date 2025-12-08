@@ -39,6 +39,7 @@ typedef struct _CPU {
   uint8_t prevpf; 
   
 
+  int nmiInterruptFlag;
 
 }CPU;
 
@@ -62,6 +63,10 @@ void reset(CPU*, Bus*);
 int nmi(CPU*, Bus*);
 int irq(CPU*, Bus*);
 int brki(CPU*, Bus*);
+
+void triggerNmi(CPU*);
+
+void checkForInterrupts(CPU*, Bus*);
 
 int decodeAndExecute(CPU*, Bus*, uint8_t);
 

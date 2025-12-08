@@ -38,6 +38,34 @@ typedef struct _Mem {
   int mapped;
 } Mem;
 
+typedef struct _controller {
+
+  // variable set whether it has been strobed or not
+  // a strobe being a write to $4016 with a 1 then a write to it with zero
+  int strobed;
+
+
+  // button state stored in an unsigned 8bit integer
+  // 1 - pressed
+  // 0 - not pressed
+  //
+  // Buttons in this order to the corresponding bit number
+  // 0 - A
+  // 1 - B
+  // 2 - Select
+  // 3 - Start
+  // 4 - Up
+  // 5 - Down
+  // 6 - Left
+  // 7 - Right
+  uint8_t sdlButtons;
+  uint8_t latchedButtons;
+
+
+  int readCount;
+
+} Controller;
+
 
 
 typedef struct _Bus {
@@ -47,13 +75,14 @@ typedef struct _Bus {
 
   // peripherals on the bus
   PPU* ppu;
-  uint8_t controller1;
-  uint8_t controller2;
+  Controller controller1;
+  Controller controller2;
   uint8_t oamdma;
 
   // mapper number
   int mapper;
 
+  // written through port $4016, once written to, 
 
 } Bus; 
 

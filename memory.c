@@ -82,6 +82,11 @@ void initBus(Bus* bus, uint16_t banks){
   bus->cpu = (CPU*) malloc(sizeof(CPU));
   bus->ppu = (PPU*) malloc(sizeof(PPU));
   bus->numOfBlocks = banks;
+  bus->controller1.latchedButtons = 0x00;
+  bus->controller1.strobed = 0;
+  bus->controller1.readCount = 0;
+  bus->controller2.sdlButtons = 0x00;
+
 }
 
 #if NESEMU == 0
@@ -177,7 +182,7 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         int overflowFlag;
         //printf("Writing to bus at $2007 \n");
         writePpuBus(bus->ppu, bus->ppu->vregister1, bus->ppu->data);
-        printf("Wrote to ppu bus %x with value %x \n", bus->ppu->vregister1, bus->ppu->data);
+        //printf("Wrote to ppu bus %x with value %x \n", bus->ppu->vregister1, bus->ppu->data);
         if(getBit(bus->ppu->ctrl, 2) == 0){
           bus->ppu->vregister1++;
           
@@ -188,7 +193,18 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
     }
   } else if(addr == 0x4014){
     bus->oamdma = val;
-  } else {
+  } else if(addr == 0x4016){
+
+    if(bus->controller1.strobed == 0 && val == 1){
+      bus->controller1.strobed = 1;
+      bus->controller1.latchedButtons = bus->controller1.sdlButtons;
+    } else if(bus->controller1.strobed == 1 && val == 0){
+      bus->controller1.strobed = 0;
+    } 
+
+    return;
+    
+  }  else {
 
     // NROM mapper (the basic bitch mapper)
     if(bus->mapper == 0){
@@ -279,10 +295,41 @@ uint8_t readBus(Bus* bus, uint16_t addr){
     }
   } else if(addr == 0x4016){
     //printf("reading controller one \n");
-    return bus->controller1;
+    if(bus->controller1.strobed == 0){
+      switch(bus->controller1.readCount){
+        case 0:
+          bus->controller1.readCount++;
+          return getBit(bus->controller1.latchedButtons, 0);
+        case 1:
+          bus->controller1.readCount++;
+          return getBit(bus->controller1.latchedButtons, 1) >> 1;
+        case 2:
+          bus->controller1.readCount++;
+          return getBit(bus->controller1.latchedButtons, 2) >> 2;
+        case 3:
+          bus->controller1.readCount++;
+          return getBit(bus->controller1.latchedButtons, 3) >> 3;
+        case 4:
+          bus->controller1.readCount++;
+          return getBit(bus->controller1.latchedButtons, 4) >> 4;
+        case 5:
+          bus->controller1.readCount++;
+          return getBit(bus->controller1.latchedButtons, 5) >> 5;
+        case 6:
+          bus->controller1.readCount++;
+          return getBit(bus->controller1.latchedButtons, 6) >> 6;
+        case 7:
+          bus->controller1.readCount = 0;
+          return getBit(bus->controller1.latchedButtons, 7) >> 7;
+        default:
+          return 0;
+      }
+    } else {
+      return 0;
+    }
   } else if(addr == 0x4017){
     //printf("reading controller two \n");
-    return bus->controller2;
+    return 0;
   } else {
 
     // NROM mapper 
