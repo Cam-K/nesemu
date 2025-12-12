@@ -333,10 +333,16 @@ void renderScanline(PPU* ppu){
       if(ppu->oam[oamIndices[j] + 3] <= i && ppu->oam[oamIndices[j] + 3] + 7 >= i){
       // if the beam is within the boundaries of foreground tile, draw the pixel
         
-        // oamIndices[j] + 1 because this is where the patterntable index resides in
-        bitPlane1 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]]));
-        bitPlane2 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]] + 8));        
 
+        if(getBit(ppu->oam[oamIndices[j] + 2], 7) == 0){
+          // oamIndices[j] + 1 because this is where the patterntable index resides in
+          bitPlane1 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]]));
+          bitPlane2 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]] + 8));        
+        } else {
+          bitPlane1 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + 7 - (ppu->scanLine - ppu->oam[oamIndices[j]])));
+          bitPlane2 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + 7 - (ppu->scanLine - ppu->oam[oamIndices[j]]) + 8));    
+
+        }
         // checks to see if the sprite horizontal mirroring bit is set
         if(getBit(ppu->oam[oamIndices[j] + 2], 6) == 0b01000000){
           bit1 = getBit(bitPlane1, i - ppu->oam[oamIndices[j] + 3]);
