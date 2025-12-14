@@ -408,8 +408,8 @@ void startNes(char* romPath, int screenScaling){
   int scanlines = 0;
   uint32_t* scanlineBuffer;
   uint8_t tempInt;
-  uint mirroring;
-
+  int mirroring;
+ 
   if(screenScaling < 1){
     screenScaling = 1;
   }
@@ -453,6 +453,7 @@ void startNes(char* romPath, int screenScaling){
   bus.mapper = (tempInt >> 4) & 0b1111;
 
   bus.ppu->mirroring = getBit(tempInt, 0);
+  mirroring = getBit(tempInt, 0);
   printf("mirroring %d \n", bus.ppu->mirroring);
   bus.mapper = (bus.mapper | ((fgetc(romPtr) & 0b11110000)));
 
@@ -526,9 +527,8 @@ void startNes(char* romPath, int screenScaling){
             bus.ppu->scanLine++;
             //printf("Scanline %d \n", bus.ppu->scanLine);
             if(bus.ppu->scanLine == 240){
-
+              bus.ppu->mirroring = mirroring;
               vblankStart(&bus);
-              printf("mirroring %d \n", bus.ppu->mirroring);
               drawFrameBuffer(bus.ppu, renderer, texture);
               //printNameTable(&bus);
             } else if(bus.ppu->scanLine == 260){
