@@ -13,7 +13,7 @@ void initPpu(PPU* ppu){
   ppu->chrrom = malloc(sizeof(uint8_t) * 8192);
   ppu->oam = malloc(sizeof(uint8_t) * 64 * 4);
   ppu->paletteram = calloc(32, sizeof(uint8_t));
-  ppu->vram = calloc(2048, sizeof(uint8_t));
+  ppu->vram = calloc(0x1400, sizeof(uint8_t));
   ppu->scanlineBuffer = malloc(sizeof(uint32_t) * WINDOW_WIDTH);
 
   printf("initializing PPU \n");
@@ -162,12 +162,11 @@ void populatePalette(PPU* ppu){
 void drawFrameBuffer(PPU* ppu, SDL_Renderer* renderer, SDL_Texture* texture){
   //printf("drawing framebuffer \n");
   uint32_t *pixels;
-  int* pitch;
-  pitch = malloc(sizeof(int));
-  *pitch = WINDOW_WIDTH;
+  int pitch;
+
 
   SDL_RenderClear(renderer);
-  SDL_LockTexture(texture, NULL, (void**)&pixels, pitch);
+  SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch);
 
   for(int i = 0; i < WINDOW_HEIGHT; ++i){
     for(int j = 0; j < WINDOW_WIDTH; ++j){
@@ -179,26 +178,26 @@ void drawFrameBuffer(PPU* ppu, SDL_Renderer* renderer, SDL_Texture* texture){
   SDL_UnlockTexture(texture);
   SDL_RenderCopy(renderer, texture, NULL, NULL);
   SDL_RenderPresent(renderer);
-  free(pitch);
 
 }
 
 void printNameTable(Bus* bus){
 
-
+  printf("-------------------------------- \n");
   for(int i = 0; i < 0x1f; ++i){
     printf("%x ", i);
     for(int j = 0; j < 0x20; ++j){
-      if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) == 0x62){
+      if(readPpuBus(bus->ppu, 0x2c00 + j + (32 * i)) == 0x62){
          red(); 
-      } else if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) != 0x24){
+      } else if(readPpuBus(bus->ppu, 0x2c00 + j + (32 * i)) != 0x24){
         yellow();
       }
-      printf("%x ", readPpuBus(bus->ppu, 0x2000 + j + (32 * i)));
+      printf("%x ", readPpuBus(bus->ppu, 0x2c00 + j + (32 * i)));
       default_color(); 
     }
     printf("\n");
   }
+  printf("-------------------------------- \n");
 
 }
 
@@ -364,17 +363,20 @@ void renderScanline(PPU* ppu){
         // if the colour isn't a transparency pixel, draw the pixel
         if(bitsCombined != 0){
 
+          // if the background isn't transparent or the sprite is behind the backgrond, draw the pixel
+          if(ppu->frameBuffer[ppu->scanLine][i] == 0 || getBit(ppu->oam[oamIndices[j] + 2], 5) == 0){
           // fetch sprite palette index from oam memory and set palette
-          spritePaletteIndex = getBit(ppu->oam[oamIndices[j] + 2], 0);
-          spritePaletteIndex = spritePaletteIndex | getBit(ppu->oam[oamIndices[j] + 2], 1);
+            spritePaletteIndex = getBit(ppu->oam[oamIndices[j] + 2], 0);
+            spritePaletteIndex = spritePaletteIndex | getBit(ppu->oam[oamIndices[j] + 2], 1);
 
-          tempPalette[0] = readPpuBus(ppu, 0x3f10 + 0 + (spritePaletteIndex * 4));
-          tempPalette[1] = readPpuBus(ppu, 0x3f10 + 1 + (spritePaletteIndex * 4));
-          tempPalette[2] = readPpuBus(ppu, 0x3f10 + 2 + (spritePaletteIndex * 4));
-          tempPalette[3] = readPpuBus(ppu, 0x3f10 + 3 + (spritePaletteIndex * 4));
+            tempPalette[0] = readPpuBus(ppu, 0x3f10 + 0 + (spritePaletteIndex * 4));
+            tempPalette[1] = readPpuBus(ppu, 0x3f10 + 1 + (spritePaletteIndex * 4));
+            tempPalette[2] = readPpuBus(ppu, 0x3f10 + 2 + (spritePaletteIndex * 4));
+            tempPalette[3] = readPpuBus(ppu, 0x3f10 + 3 + (spritePaletteIndex * 4));
 
 
-          ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[bitsCombined]];
+            ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[bitsCombined]];
+          }
         }
       
 
@@ -416,11 +418,10 @@ void vblankStart(Bus* bus){
   bus->ppu->vblank = 1;
   // checks vblank enable bit
   if(getBit(bus->ppu->ctrl, 7) == 0b10000000){
-    //triggerNmi(bus->cpu);
     nmi(bus->cpu, bus);
   }
 
-  writePpuBus(bus->ppu, bus->ppu->addr, bus->ppu->data);
+
 }
 
 
@@ -435,6 +436,8 @@ void vblankEnd(Bus* bus){
 
 
 }
+
+
 
 
 

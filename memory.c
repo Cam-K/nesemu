@@ -34,6 +34,7 @@ void clearMem(Mem* mem){
 //
 // Memory blocks should be mapped in order of there place
 // in the array when setting up a machine, or else an error will occur.
+// NOTE: Only used in 6502 mode. Not needed for NES Mode. the memory mapping is fixed in NES mode.
 
 void mapMemory(Bus* bus, uint16_t index, uint16_t addr){
   int mapMemoryFlag;
@@ -415,7 +416,36 @@ void writePpuBus(PPU* ppu, uint16_t addr, uint8_t val){
   if(addr >= 0x0000 && addr <= 0x1fff){
     ppu->chrrom[addr] = val;
   } else if(addr >= 0x2000 && addr <= 0x2fff){
+
+
     ppu->vram[addr - 0x2000] = val;
+
+    // vertical arrangement (horizontal mirroring)
+    if(ppu->mirroring == 0){
+      if(addr >= 0x2000 && addr <= 0x23bf){
+        ppu->vram[(addr - 0x2000) + 0x400] = val;
+      } else if(addr >= 0x2400 && addr <= 0x27bf){
+        ppu->vram[(addr - 0x2000) - 0x400] = val;
+      } else if(addr >= 0x2800 && addr <= 0x2bbf){
+        ppu->vram[(addr - 0x2000) + 0x400] = val;
+      } else if(addr >= 0x2c00 && addr <= 0x2fbf){
+        ppu->vram[(addr - 0x2000) - 0x400] = val;
+      }
+      // horizontal arrangement (vertical mirroring)
+    } else if(ppu->mirroring == 1){
+
+      if(addr >= 0x2000 && addr <= 0x23bf){
+        ppu->vram[(addr - 0x2000) + 0x800] = val;
+      } else if(addr >= 0x2400 && addr <= 0x27bf){
+        ppu->vram[(addr - 0x2000) + 0x800] = val;
+      } else if(addr >= 0x2800 && addr <= 0x2bbf){
+        ppu->vram[(addr - 0x2000) - 0x800] = val;
+      } else if(addr >= 0x2c00 && addr <= 0x2fbf){
+        ppu->vram[(addr - 0x2000) - 0x800] = val;
+      }
+    
+    }
+
   } else if (addr >= 0x3000 && addr <= 0x3eff){
     ppu->vram[addr - 0x3000] = val;
   } else if (addr >= 0x3f00 && addr <= 0x3f1f){

@@ -36,8 +36,8 @@ typedef struct _PPU {
   uint8_t data;
   
 
-  // 0 -  vertical arrangement
-  // 1 - horizontal arrangement 
+  // 0 -  vertical arrangement (horizontal mirroring)
+  // 1 - horizontal arrangement (vertical mirroring)
   int mirroring;
   
   int scanLine;
