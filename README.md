@@ -19,5 +19,15 @@ Only compatible with mapper 0 games at the moment.
 ``./nesemu -n [FILE]
 
 
+## Controls:
+| Keyboard      | NES Contorller   |
+|---------------|------------------|
+| Arrow Keys    | Control Pad      |
+| Z Key         | B Button         |
+| X Key         | A Button         |
+| Enter         | Start            |
+| Shift         | Select           | 
+ 
+
 
 

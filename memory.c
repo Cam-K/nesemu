@@ -157,12 +157,12 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         bus->ppu->oam[bus->ppu->oamaddr] = val;
         break;
       case 0x2005:
-        if(bus->ppu->wregister == 1){
-          bus->ppu->scroll = bus->ppu->scroll | (uint16_t) val;
-          bus->ppu->wregister = 0;
-        } else if(bus->ppu->wregister == 0){
-          bus->ppu->scroll = bus->ppu->scroll | (((uint16_t)val) << 8);
+        if(bus->ppu->wregister == 0){
+          bus->ppu->xScroll = val;
           bus->ppu->wregister = 1;
+        } else if(bus->ppu->wregister == 1){
+          bus->ppu->yScroll = val;
+          bus->ppu->wregister = 0;
         }
         break;
       case 0x2006:
@@ -281,11 +281,7 @@ uint8_t readBus(Bus* bus, uint16_t addr){
         //printf("Reading oamdata \n");
         return bus->ppu->oam[bus->ppu->oamaddr];
       case 0x2005:
-        if(bus->ppu->wregister == 0){
-          return bus->ppu->scroll & 0xff;
-        } else if(bus->ppu->wregister == 1){
-          return ((bus->ppu->scroll & 0xff00) >> 8);
-        }
+        return 0;
       case 0x2006:
          if(bus->ppu->wregister == 0){
           return bus->ppu->addr & 0xff;

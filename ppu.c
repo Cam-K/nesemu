@@ -28,7 +28,6 @@ void initPpu(PPU* ppu){
   ppu->status = 0;
   ppu->oamaddr = 0;
   ppu->oamdata = 0;
-  ppu->scroll = 0;
   ppu->addr = 0;
   ppu->data = 0;
   ppu->oamdma = 0;
@@ -51,11 +50,11 @@ void resetPpu(PPU* ppu, int powerFlag){
     ppu->addr = 0;
     ppu->status = 0b10100000;
   }
-  ppu->scroll = 0;
   ppu->data = 0;
   ppu->wregister = 0;
   ppu->vblank = 0;
-
+  ppu->xScroll = 0;
+  ppu->yScroll = 0;
   ppu->scanLine = 0;
   ppu->frames = 0;
   ppu->vregister1 = 0;
@@ -187,12 +186,12 @@ void printNameTable(Bus* bus){
   for(int i = 0; i < 0x1f; ++i){
     printf("%x ", i);
     for(int j = 0; j < 0x20; ++j){
-      if(readPpuBus(bus->ppu, 0x2400 + j + (32 * i)) == 0x62){
+      if(readPpuBus(bus->ppu, 0x2800 + j + (32 * i)) == 0x62){
          red(); 
-      } else if(readPpuBus(bus->ppu, 0x2400 + j + (32 * i)) != 0x24){
+      } else if(readPpuBus(bus->ppu, 0x2800 + j + (32 * i)) != 0x24){
         yellow();
       }
-      printf("%x ", readPpuBus(bus->ppu, 0x2400 + j + (32 * i)));
+      printf("%x ", readPpuBus(bus->ppu, 0x2800 + j + (32 * i)));
       default_color(); 
     }
     printf("\n");
@@ -254,6 +253,21 @@ void renderScanline(PPU* ppu){
       spriteOffset = 0x1000;
   }
 
+  if((ppu->ctrl & 0b11) == 0b00){
+    baseNametableAddress = 0x2000;
+
+  } else if ((ppu->ctrl & 0b11) == 0b01){
+    baseNametableAddress = 0x2400;
+
+
+  } else if ((ppu->ctrl & 0b11) == 0b10){
+    baseNametableAddress = 0x2800;
+
+  } else if ((ppu->ctrl & 0b11) == 0b11){
+    baseNametableAddress = 0x2c00;
+
+  }
+
 
   // Sprite Evaluation
   //   Does a linear search through the oam, find 8 sprites on the current scanline that are going to be drawn and
@@ -273,28 +287,15 @@ void renderScanline(PPU* ppu){
 
   }
     
-  if((ppu->ctrl & 0b11) == 0b00){
-    baseNametableAddress = 0x2000;
-
-  } else if ((ppu->ctrl & 0b11) == 0b01){
-    baseNametableAddress = 0x2400;
-
-
-  } else if ((ppu->ctrl & 0b11) == 0b10){
-    baseNametableAddress = 0x2800;
-
-  } else if ((ppu->ctrl & 0b11) == 0b11){
-    baseNametableAddress = 0x2c00;
-
-  }
-  
-
  
   for(int i = 0; i < WINDOW_WIDTH; ++i){
     // fetch nametable entry
-    patternTableIndice = readPpuBus(ppu, (baseNametableAddress + (uint16_t)(i / 8)) + ((int)(ppu->scanLine / 8) * 32));
+    patternTableIndice = readPpuBus(ppu, (uint16_t)(baseNametableAddress + (uint16_t)(i / 8)) + ((uint16_t)(ppu->scanLine / 8) * 32) + (uint16_t)(ppu->xScroll / 8) + (uint16_t)(ppu->yScroll / 8) * 32);
     
     ppu->vregister2 = (uint16_t)(i / 8) + ((int)(ppu->scanLine / 8) * 32);
+
+
+
 
     // fetch attributetable byte using formula
     attributeTableByte = readPpuBus(ppu, 0x23c0 | (ppu->vregister2 & 0x0c00) | ((ppu->vregister2 >> 4) & 0x38) | ((ppu->vregister2 >> 2) & 0x07));
@@ -332,8 +333,8 @@ void renderScanline(PPU* ppu){
     // else if ppuctrl bit 3 is 1 then use 0x1000 as base
     bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + (ppu->scanLine % 8)));
     bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + (ppu->scanLine % 8) + 8));
-    bit1 = getBitFromLeft(bitPlane1, i % 8);
-    bit2 = getBitFromLeft(bitPlane2, i % 8);
+    bit1 = getBitFromLeft(bitPlane1, (i % 8));
+    bit2 = getBitFromLeft(bitPlane2, (i % 8));
     bit1 = bit1 >> findBit(bit1);
     bit2 = bit2 >> findBit(bit2);
     bit2 = bit2 << 1;

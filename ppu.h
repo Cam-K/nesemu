@@ -31,7 +31,8 @@ typedef struct _PPU {
   uint8_t oamaddr;
   uint8_t oamdata;
   uint8_t oamdma;
-  uint16_t scroll;
+  uint8_t yScroll;
+  uint8_t xScroll;
   uint16_t addr;
   uint8_t data;
   
