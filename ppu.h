@@ -83,7 +83,6 @@ typedef struct _PPU {
   // (stores the 24-bit RGB value in an array)
   // frameBuffer should be initialized as [WINDOW_HEIGHT][WINDOW_WIDTH]
   uint32_t** frameBuffer;
-  uint32_t* scanlineBuffer;
 
   // nes palette to 24-bit RGB color
   // http://www.romdetectives.com/Wiki/index.php?title=NES_Palette

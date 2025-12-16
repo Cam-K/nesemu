@@ -14,8 +14,7 @@ void initPpu(PPU* ppu){
   ppu->oam = malloc(sizeof(uint8_t) * 64 * 4);
   ppu->paletteram = calloc(32, sizeof(uint8_t));
   ppu->vram = calloc(0x1400, sizeof(uint8_t));
-  ppu->scanlineBuffer = malloc(sizeof(uint32_t) * WINDOW_WIDTH);
-
+  
   printf("initializing PPU \n");
   ppu->frameBuffer = malloc(sizeof(uint32_t*) * 242);
   for(int i = 0; i < 242; ++i){
@@ -186,12 +185,12 @@ void printNameTable(Bus* bus){
   for(int i = 0; i < 0x1f; ++i){
     printf("%x ", i);
     for(int j = 0; j < 0x20; ++j){
-      if(readPpuBus(bus->ppu, 0x2800 + j + (32 * i)) == 0x62){
+      if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) == 0x62){
          red(); 
-      } else if(readPpuBus(bus->ppu, 0x2800 + j + (32 * i)) != 0x24){
+      } else if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) != 0x24){
         yellow();
       }
-      printf("%x ", readPpuBus(bus->ppu, 0x2800 + j + (32 * i)));
+      printf("%x ", readPpuBus(bus->ppu, 0x2000 + j + (32 * i)));
       default_color(); 
     }
     printf("\n");
@@ -297,6 +296,7 @@ void renderScanline(PPU* ppu){
 
 
 
+
     // fetch attributetable byte using formula
     attributeTableByte = readPpuBus(ppu, 0x23c0 | (ppu->vregister2 & 0x0c00) | ((ppu->vregister2 >> 4) & 0x38) | ((ppu->vregister2 >> 2) & 0x07));
     if(i % 16 == 0){
@@ -349,9 +349,17 @@ void renderScanline(PPU* ppu){
       if(ppu->oam[oamIndices[j] + 3] <= i && ppu->oam[oamIndices[j] + 3] + 7 >= i){
       // if the beam is within the boundaries of foreground tile, draw the pixel
         
-        // oamIndices[j] + 1 because this is where the patterntable index resides in
-        bitPlane1 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]]));
-        bitPlane2 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]] + 8));        
+
+        // if the sprite is vertically mirrored or not
+        if(getBit(ppu->oam[oamIndices[j] + 2], 7) == 0){ 
+
+          // oamIndices[j] + 1 because this is where the patterntable index resides in
+          bitPlane1 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]]));
+          bitPlane2 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]] + 8));    
+        } else if(getBit(ppu->oam[oamIndices[j] + 2], 7) == 0b10000000) {
+          bitPlane1 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + (7 - (ppu->scanLine - ppu->oam[oamIndices[j]]))));
+          bitPlane2 = readPpuBus(ppu, (spriteOffset + (((uint16_t) ppu->oam[oamIndices[j] + 1]) << 4) + (7 - (ppu->scanLine - ppu->oam[oamIndices[j]]) + 8)));    
+        }
 
         // checks to see if the sprite horizontal mirroring bit is set
         if(getBit(ppu->oam[oamIndices[j] + 2], 6) == 0b01000000){
