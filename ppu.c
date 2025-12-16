@@ -14,7 +14,7 @@ void initPpu(PPU* ppu){
   ppu->oam = malloc(sizeof(uint8_t) * 64 * 4);
   ppu->paletteram = calloc(32, sizeof(uint8_t));
   ppu->vram = calloc(0x1400, sizeof(uint8_t));
-  
+
   printf("initializing PPU \n");
   ppu->frameBuffer = malloc(sizeof(uint32_t*) * 242);
   for(int i = 0; i < 242; ++i){
@@ -393,6 +393,13 @@ void renderScanline(PPU* ppu){
             tempPalette[2] = readPpuBus(ppu, 0x3f10 + 2 + (spritePaletteIndex * 4));
             tempPalette[3] = readPpuBus(ppu, 0x3f10 + 3 + (spritePaletteIndex * 4));
 
+            // sprite zero hit
+            if(bitsCombined != 0 && ppu->frameBuffer[ppu->scanLine][i] != 0){
+              ppu->status = setBit(ppu->status, 6);
+            } else {
+              ppu->status = clearBit(ppu->status, 6);
+        
+            }
 
             ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[bitsCombined]];
           }
