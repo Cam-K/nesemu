@@ -212,6 +212,38 @@ int getEightSixteen(PPU* ppu){
 
 }
 
+int spriteEvaluation(PPU* ppu, uint8_t* oamIndices, int eightSixteenSpriteFlag){
+  int spriteEvalCounter = 0;
+  for(int i = 0; i < 8; ++i){
+
+    oamIndices[i] = 0;
+  }
+
+  for(uint16_t i = 0; i < 256; i = i + 4){
+
+    // ppu->oam[i] gets the Y coordinate of the tile
+    if(eightSixteenSpriteFlag == 0){
+      if(ppu->oam[i] <= ppu->scanLine && ppu->oam[i] + 7 >= ppu->scanLine){
+        oamIndices[spriteEvalCounter] = (uint8_t) i;
+        spriteEvalCounter++;
+      }
+    } else if(eightSixteenSpriteFlag == 1){
+      if(ppu->oam[i] <= ppu->scanLine && ppu->oam[i] + 15 >= ppu->scanLine){
+        oamIndices[spriteEvalCounter] = i;
+        spriteEvalCounter++;
+      }
+    }
+    if(spriteEvalCounter >= 8){
+      break;
+    }
+
+  }
+
+  return spriteEvalCounter;
+
+
+}
+
 // renderScanline()
 //   renders a scanline with the given registers 
 //   inputs:
@@ -283,25 +315,8 @@ void renderScanline(PPU* ppu){
   //   Does a linear search through the oam, find 8 sprites on the current scanline that are going to be drawn and
   //   stores the oam indices into an array
 
-   for(uint16_t i = 0; i < 256; i = i + 4){
+  spriteEvalCounter = spriteEvaluation(ppu, oamIndices, eightSixteenSpriteFlag);
 
-    // ppu->oam[i] gets the Y coordinate of the tile
-    if(eightSixteenSpriteFlag == 0){
-      if(ppu->oam[i] <= ppu->scanLine && ppu->oam[i] + 7 >= ppu->scanLine){
-        oamIndices[spriteEvalCounter] = (uint8_t) i;
-        spriteEvalCounter++;
-      }
-    } else if(eightSixteenSpriteFlag == 1){
-      if(ppu->oam[i] <= ppu->scanLine && ppu->oam[i] + 15 >= ppu->scanLine){
-        oamIndices[spriteEvalCounter] = i;
-        spriteEvalCounter++;
-      }
-    }
-    if(spriteEvalCounter >= 8){
-      break;
-    }
-
-  }
   for(int i = 0; i < WINDOW_WIDTH; ++i){
 
     //First, draw background
