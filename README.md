@@ -20,7 +20,7 @@ Only compatible with mapper 0 games at the moment.
 
 
 ## Controls:
-| Keyboard      | NES Contorller   |
+| Keyboard      | NES Controller   |
 |---------------|------------------|
 | Arrow Keys    | Control Pad      |
 | Z Key         | B Button         |
