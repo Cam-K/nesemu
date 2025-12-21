@@ -143,6 +143,7 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
     switch(((addr % 8) + 0x2000)){
       case 0x2000:
         bus->ppu->ctrl = val;
+        bus->ppu->vregister2.nameTableSelect = (val & 0b11);
         break;
       case 0x2001:
         bus->ppu->mask = val;
@@ -158,10 +159,15 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         break;
       case 0x2005:
         if(bus->ppu->wregister == 0){
-          bus->ppu->xScroll = val;
+          bus->ppu->vregister2.courseX = (val & 0xf8) >> 3;
+          bus->ppu->xregister = (val & 0x07);
+          bus->ppu->tregister.courseX = (val & 0xf8) >> 3;
           bus->ppu->wregister = 1;
         } else if(bus->ppu->wregister == 1){
-          bus->ppu->yScroll = val;
+          bus->ppu->vregister2.courseY = (val & 0xf8) >> 3;
+          bus->ppu->tregister.courseX = (val & 0xf8) >> 3;
+          bus->ppu->vregister2.fineY = (val & 0x07);
+          bus->ppu->tregister.fineY = (val & 0x07);
           bus->ppu->wregister = 0;
         }
         break;

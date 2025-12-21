@@ -4,6 +4,7 @@
 #include "memory.h"
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
+#include <stdint.h>
 
 #include "ansicolor.h"
 
@@ -59,7 +60,12 @@ void resetPpu(PPU* ppu, int powerFlag){
   ppu->scanLine = 0;
   ppu->frames = 0;
   ppu->vregister1 = 0;
-  ppu->vregister2 = 0;
+
+  ppu->vregister2.courseX = 0;
+  ppu->vregister2.courseY = 0;
+  ppu->vregister2.fineY = 0;
+  ppu->vregister2.nameTableSelect = 0;
+
   
 
 }
@@ -300,7 +306,7 @@ void renderScanline(PPU* ppu){
   uint8_t oamIndices[8];
   uint8_t tempPalette[4]; 
   uint16_t baseNametableAddress;
-
+  uint16_t tempV2;
   uint8_t tileNumberOfTopSprite;
 
 
@@ -341,35 +347,35 @@ void renderScanline(PPU* ppu){
   spriteEvalCounter = spriteEvaluation(ppu, oamIndices, eightSixteenSpriteFlag);
 
 
+    
 
-  vcomp.courseX = (uint8_t)(ppu->xScroll & 0xf8) >> 3;
-  vcomp.courseY = (uint8_t)(ppu->yScroll & 0xf8) >> 3;
-  vcomp.fineY = ppu->yScroll & 0b111;
-  fineX = ppu->xScroll & 0b111;
-  printf("vcomp.courseX %x \n", vcomp.courseX);
+
+  //printf("fineX %x \n", fineX);
 
   for(int i = 0; i < WINDOW_WIDTH; ++i){
 
     // First, draw background
 
-    //set vregister to proper value 
-    ppu->vregister2 = (uint16_t)(i / 8) + ((int)(ppu->scanLine / 8) * 32);
-
-    ppu->vregister2 = ppu->vregister2 + (vcomp.courseX);
-    ppu->vregister2 = ppu->vregister2 + (((uint16_t)vcomp.courseY) << 5);
-    ppu->vregister2 = ppu->vregister2 + (((uint16_t)vcomp.fineY) << 12);
-    
     // fetch nametable entry
-    //printf("vr2 + bna %x \n", baseNametableAddress + ppu->vregister2);
+    //printf("vr2 + bna %x \n", ppu->vregister2);
     //printf("vcomp.courseX %x \n", vcomp.courseX);
-    patternTableIndice = readPpuBus(ppu, (baseNametableAddress + ppu->vregister2));
+
+    //printf("vr2 %x \n", ppu->vregister2 + 0x2000);
+    
+    tempV2 = 0;
+    tempV2 = ppu->vregister2.courseX;
+    tempV2 = tempV2 | (((uint16_t)ppu->vregister2.courseY) << 5);
+    tempV2 = tempV2 | (((uint32_t) ppu->vregister2.nameTableSelect) << 10);
+    tempV2 = tempV2 | (((uint32_t) ppu->vregister2.fineY) << 12);
+    printf("tempv2 %x \n", tempV2);
+    patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
     
 
 
 
 
     // fetch attributetable byte using formula
-    attributeTableByte = readPpuBus(ppu, 0x23c0 | (ppu->vregister2 & 0x0c00) | ((ppu->vregister2 >> 4) & 0x38) | ((ppu->vregister2 >> 2) & 0x07));
+    attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV2 & 0x0c00) | ((tempV2 >> 4) & 0x38) | ((tempV2 >> 2) & 0x07));
     if(i % 16 == 0){
       attributeTableQuandrant = getAttributeQuadrant(i, ppu->scanLine);
     }
@@ -404,8 +410,8 @@ void renderScanline(PPU* ppu){
     // else if ppuctrl bit 3 is 1 then use 0x1000 as base
     bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + (ppu->scanLine % 8)));
     bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + (ppu->scanLine % 8) + 8));
-    bitPlane1 = shiftRightWithWrap(bitPlane1, fineX);
-    bitPlane2 = shiftRightWithWrap(bitPlane2, fineX);
+    bitPlane1 = shiftLeftWithWrap(bitPlane1, fineX);
+    bitPlane2 = shiftLeftWithWrap(bitPlane2, fineX);
     bit1 = getBitFromLeft(bitPlane1, (i % 8));
     bit2 = getBitFromLeft(bitPlane2, (i % 8));
     bit1 = bit1 >> findBit(bit1);
@@ -414,6 +420,11 @@ void renderScanline(PPU* ppu){
     bitsCombined = bit1 | bit2;
     thirtytwobitPixelColour = ppu->palette[tempPalette[bitsCombined]];
     ppu->frameBuffer[ppu->scanLine][i] = thirtytwobitPixelColour;
+
+    if(i % 8 == 0){
+      ppu->vregister2.courseX++;
+    }
+
     
     // Second, now iterate through the amount of sprites that were found at the beginning of the scanline and display them if the beam resides in it's X coordinate
     for(int j = 0; j < spriteEvalCounter; ++j){
@@ -519,8 +530,12 @@ void renderScanline(PPU* ppu){
   }
   
   }
-  
-  
+  ppu->vregister2.courseX = ppu->tregister.courseX;
+  ppu->vregister2.fineY++;
+  if(ppu->scanLine % 8 == 0){
+    ppu->vregister2.courseY++;
+  }
+ 
  
 }
 
@@ -576,8 +591,8 @@ void vblankEnd(Bus* bus){
 
   // clears sprite overflow flag
   bus->ppu->status = clearBit(bus->ppu->status, 5);
-  
 
+  
 }
 
 

@@ -76,10 +76,11 @@ typedef struct _PPU {
   uint16_t vregister1;
   
   // holds the currently drawn nametable address offset
-  uint16_t vregister2;
 
   uint8_t xregister;
-  uint16_t tregister;
+  
+  struct VComponent tregister;
+  struct VComponent vregister2;
 
 
   // variable to track whether the nes is in vertical blanking or not
