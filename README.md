@@ -1,7 +1,7 @@
 # Nintendo Entertainment System Emulator
 A simple NES emulator, written in C and SDL2
 
-Only compatible with mapper 0 games at the moment.
+Only compatible with some mapper 0 games at the moment.
 
 
 ## How to compile on Linux system:

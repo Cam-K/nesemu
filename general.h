@@ -26,3 +26,7 @@ uint8_t getBitFromLeft(uint8_t, uint8_t);
 uint8_t findBit(uint8_t);
 
 uint8_t bitToBitNum(uint8_t);
+
+uint8_t shiftRightWithWrap(uint8_t, uint8_t);
+
+uint8_t shiftLeftWithWrap(uint8_t, uint8_t);

@@ -21,6 +21,13 @@ typedef struct _PPUBUS {
 
 } PPUBus;
 
+struct VComponent {
+  unsigned int courseX : 5;
+  unsigned int courseY : 5;
+  unsigned int nameTableSelect : 2;
+  unsigned int fineY: 3;
+};
+
 
 typedef struct _PPU {
 
@@ -70,6 +77,9 @@ typedef struct _PPU {
   
   // holds the currently drawn nametable address offset
   uint16_t vregister2;
+
+  uint8_t xregister;
+  uint16_t tregister;
 
 
   // variable to track whether the nes is in vertical blanking or not

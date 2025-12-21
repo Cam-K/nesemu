@@ -64,3 +64,46 @@ uint8_t findBit(uint8_t val){
   return placement;
 
 }
+
+uint8_t shiftRightWithWrap(uint8_t oper,  uint8_t shiftAmt){
+  uint8_t carry;
+  uint8_t temp = oper;
+  for(int i = 0; i < shiftAmt; ++i){
+    carry = getBit(temp, 0);
+    temp = temp >> 1;
+    if(carry == 1){
+      temp = setBit(temp, 7);
+    } else if(carry == 0){
+      temp = clearBit(temp, 7);
+
+    }
+
+  }
+
+  return temp;
+
+
+}
+
+
+
+
+uint8_t shiftLeftWithWrap(uint8_t oper,  uint8_t shiftAmt){
+  uint8_t carry;
+  uint8_t temp = oper;
+  for(int i = 0; i < shiftAmt; ++i){
+    carry = getBit(temp, 7) >> 7;
+    temp = temp << 1;
+    if(carry == 1){
+      temp = setBit(temp, 0);
+    } else if(carry == 0){
+      temp = clearBit(temp, 0);
+
+    }
+
+  }
+
+  return temp;
+
+
+}

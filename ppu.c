@@ -190,12 +190,12 @@ void printNameTable(Bus* bus){
   for(int i = 0; i < 0x1f; ++i){
     printf("%x ", i);
     for(int j = 0; j < 0x20; ++j){
-      if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) == 0x62){
+      if(readPpuBus(bus->ppu, 0x2400 + j + (32 * i)) == 0x62){
          red(); 
-      } else if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) != 0x24){
+      } else if(readPpuBus(bus->ppu, 0x2400 + j + (32 * i)) != 0x24){
         yellow();
       }
-      printf("%x ", readPpuBus(bus->ppu, 0x2000 + j + (32 * i)));
+      printf("%x ", readPpuBus(bus->ppu, 0x2400 + j + (32 * i)));
       default_color(); 
     }
     printf("\n");
@@ -285,8 +285,10 @@ void renderScanline(PPU* ppu){
   uint8_t bitsCombined;
   uint8_t pixelValue1;
   uint8_t pixelValue2;
+  struct VComponent vcomp;
   uint8_t pixelValueFinal;
   uint16_t patternTableOffset;
+  uint8_t fineX;
   uint16_t spriteOffset;
   uint8_t spritePaletteIndex;
   int spriteEvalCounter = 0;
@@ -339,16 +341,29 @@ void renderScanline(PPU* ppu){
   spriteEvalCounter = spriteEvaluation(ppu, oamIndices, eightSixteenSpriteFlag);
 
 
+
+  vcomp.courseX = (uint8_t)(ppu->xScroll & 0xf8) >> 3;
+  vcomp.courseY = (uint8_t)(ppu->yScroll & 0xf8) >> 3;
+  vcomp.fineY = ppu->yScroll & 0b111;
+  fineX = ppu->xScroll & 0b111;
+  printf("vcomp.courseX %x \n", vcomp.courseX);
+
   for(int i = 0; i < WINDOW_WIDTH; ++i){
 
-    //First, draw background
+    // First, draw background
 
-    // fetch nametable entry
-    patternTableIndice = readPpuBus(ppu, (uint16_t)(baseNametableAddress + (uint16_t)(i / 8)) + ((uint16_t)(ppu->scanLine / 8) * 32));
-    
+    //set vregister to proper value 
     ppu->vregister2 = (uint16_t)(i / 8) + ((int)(ppu->scanLine / 8) * 32);
 
-
+    ppu->vregister2 = ppu->vregister2 + (vcomp.courseX);
+    ppu->vregister2 = ppu->vregister2 + (((uint16_t)vcomp.courseY) << 5);
+    ppu->vregister2 = ppu->vregister2 + (((uint16_t)vcomp.fineY) << 12);
+    
+    // fetch nametable entry
+    //printf("vr2 + bna %x \n", baseNametableAddress + ppu->vregister2);
+    //printf("vcomp.courseX %x \n", vcomp.courseX);
+    patternTableIndice = readPpuBus(ppu, (baseNametableAddress + ppu->vregister2));
+    
 
 
 
@@ -389,6 +404,8 @@ void renderScanline(PPU* ppu){
     // else if ppuctrl bit 3 is 1 then use 0x1000 as base
     bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + (ppu->scanLine % 8)));
     bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + (ppu->scanLine % 8) + 8));
+    bitPlane1 = shiftRightWithWrap(bitPlane1, fineX);
+    bitPlane2 = shiftRightWithWrap(bitPlane2, fineX);
     bit1 = getBitFromLeft(bitPlane1, (i % 8));
     bit2 = getBitFromLeft(bitPlane2, (i % 8));
     bit1 = bit1 >> findBit(bit1);
