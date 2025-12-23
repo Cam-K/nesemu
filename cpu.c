@@ -593,6 +593,8 @@ int decodeAndExecute(CPU* cpu, Bus* bus, uint8_t oppCode){
       break;
     default:
       printf("illegal instruction: %d - 0x%x at %x \n", oppCode, oppCode, cpu->pc);
+      printf("defaulting to NOP \n");
+      cyclesCompleted = nop(cpu);
 
       break;
   } 

@@ -354,7 +354,7 @@ void renderScanline(PPU* ppu){
   //printf("fineX %x \n", fineX);
   //printf("treg courseX : %x \n", ppu->tregister.courseX);
   //printf("treg courseY : %x \n", ppu->tregister.courseY);
-  printf("nametable select: %x \n", ppu->tregister.nameTableSelect);
+  //printf("nametable select: %x \n", ppu->tregister.nameTableSelect);
 
   for(int i = 0; i < WINDOW_WIDTH; ++i){
 
@@ -366,12 +366,15 @@ void renderScanline(PPU* ppu){
 
     //printf("vr2 %x \n", ppu->vregister2 + 0x2000);
     
+
     tempV2 = 0;
     tempV2 = ppu->vregister2.courseX;
     tempV2 = tempV2 | (((uint16_t)ppu->vregister2.courseY) << 5);
     tempV2 = tempV2 | (((uint32_t) ppu->vregister2.nameTableSelect) << 10);
     //printf("tempv2 %x \n", 0x2000 + tempV2);
 
+
+    
     patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
     
 
@@ -423,9 +426,16 @@ void renderScanline(PPU* ppu){
 
     ppu->xregister++;
     if(i % 8 == 7){
-      ppu->vregister2.courseX++;
-      ppu->xregister = 0;
+      if(ppu->vregister2.courseX == 31){
+        ppu->vregister2.courseX = 0;
+        ppu->vregister2.nameTableSelect = setBit(ppu->vregister2.nameTableSelect, 0);
+
+      } else {
+        ppu->vregister2.courseX++;
+        ppu->xregister = 0;
+      }
     }
+   
 
     
     // Second, now iterate through the amount of sprites that were found at the beginning of the scanline and display them if the beam resides in it's X coordinate
@@ -535,7 +545,8 @@ void renderScanline(PPU* ppu){
 
   
   ppu->vregister2.courseX = ppu->tregister.courseX;
-  
+  ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) | getBit(ppu->tregister.nameTableSelect, 0);
+
   ppu->vregister2.fineY++;
   
   if(ppu->scanLine % 8 == 7){
