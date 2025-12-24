@@ -522,7 +522,7 @@ void renderScanline(PPU* ppu){
             tempPalette[3] = readPpuBus(ppu, 0x3f10 + 3 + (spritePaletteIndex * 4));
 
             // sprite zero hit
-            if(oamIndices[j] == 0 && bitsCombinedBackground != 0 && bitsCombined != 0){
+            if(oamIndices[j] == 0 && bitsCombinedBackground != 0){
               ppu->status = setBit(ppu->status, 6);
             } 
 
