@@ -86,7 +86,8 @@ void initBus(Bus* bus, uint16_t banks){
   bus->controller1.latchedButtons = 0x00;
   bus->controller1.strobed = 0;
   bus->controller1.readCount = 0;
-  bus->controller2.sdlButtons = 0x00;
+  bus->controller1.sdlButtons = 0x00;
+  bus->controller1.latchedButtons = 0x00;
 
 }
 

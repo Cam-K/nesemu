@@ -519,11 +519,11 @@ void startNes(char* romPath, int screenScaling){
  
       
       bus.ppu->scanLine = 0;
-      bus.cpu->cycles = 0;
       while(1){
         if(bus.cpu->cycles < CPU_CYCLES_PER_SCANLINE){
           oppCode = readBus(&bus, bus.cpu->pc);
           bus.cpu->cycles += decodeAndExecute(bus.cpu, &bus, oppCode);
+          //printf("cycles total: %d \n", bus.cpu->cycles);
         } else if(bus.cpu->cycles >= CPU_CYCLES_PER_SCANLINE){
           if(bus.ppu->vblank == 0){
             renderScanline(bus.ppu);

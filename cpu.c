@@ -595,9 +595,11 @@ int decodeAndExecute(CPU* cpu, Bus* bus, uint8_t oppCode){
       printf("illegal instruction: %d - 0x%x at %x \n", oppCode, oppCode, cpu->pc);
       printf("defaulting to NOP \n");
       cyclesCompleted = nop(cpu);
-
+      
       break;
   } 
+
+  //printf("cycles completed %d for %x \n", cyclesCompleted, oppCode);
   return cyclesCompleted;
 
 }
@@ -1346,7 +1348,7 @@ int ldy(CPU* cpu, Bus* bus, AddrMode mode){
       return 4;
     case absolute:
       return 4;
-    case absoluteY:
+    case absoluteX:
       return pageFlag == 1 ? 5 : 4;
 
   } 
@@ -1694,7 +1696,7 @@ int sty(CPU* cpu, Bus* bus, AddrMode mode){
   switch(mode){
     case zeroPage:
       return 3;
-    case zeroPageY:
+    case zeroPageX:
       return 4;
     case absolute:
       return 4;

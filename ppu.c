@@ -197,12 +197,12 @@ void printNameTable(Bus* bus){
   for(int i = 0; i < 0x1f; ++i){
     printf("%x ", i);
     for(int j = 0; j < 0x20; ++j){
-      if(readPpuBus(bus->ppu, 0x2400 + j + (32 * i)) == 0x62){
+      if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) == 0x62){
          red(); 
-      } else if(readPpuBus(bus->ppu, 0x2400 + j + (32 * i)) != 0x24){
+      } else if(readPpuBus(bus->ppu, 0x2000 + j + (32 * i)) != 0x24){
         yellow();
       }
-      printf("%x ", readPpuBus(bus->ppu, 0x2400 + j + (32 * i)));
+      printf("%x ", readPpuBus(bus->ppu, 0x2000 + j + (32 * i)));
       default_color(); 
     }
     printf("\n");
@@ -298,6 +298,7 @@ void renderScanline(PPU* ppu){
   uint8_t fineX;
   uint16_t spriteOffset;
   uint8_t spritePaletteIndex;
+  uint8_t bitsCombinedBackground;
   int spriteEvalCounter = 0;
   int eightSixteenSpriteFlag;
   uint16_t spritePatternTableOffset;
@@ -308,8 +309,6 @@ void renderScanline(PPU* ppu){
   uint8_t tempPalette[4]; 
   uint16_t tempV2;
   uint8_t tileNumberOfTopSprite;
-
-
 
   if(getBit(ppu->ctrl, 4) == 0){
     patternTableOffset = 0;
@@ -408,6 +407,9 @@ void renderScanline(PPU* ppu){
     bitsCombined = bit1 | bit2;
     thirtytwobitPixelColour = ppu->palette[tempPalette[bitsCombined]];
     ppu->frameBuffer[ppu->scanLine][i] = thirtytwobitPixelColour;
+
+    // this is kept for later when checking for a sprite zero hit
+    bitsCombinedBackground = bitsCombined;
     } else if(getBit(ppu->mask, 3) == 0){
       ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[0]];
 
@@ -520,7 +522,7 @@ void renderScanline(PPU* ppu){
             tempPalette[3] = readPpuBus(ppu, 0x3f10 + 3 + (spritePaletteIndex * 4));
 
             // sprite zero hit
-            if(oamIndices[j] == 0 && ppu->frameBuffer[ppu->scanLine][i] != 0){
+            if(oamIndices[j] == 0 && bitsCombinedBackground != 0 && bitsCombined != 0){
               ppu->status = setBit(ppu->status, 6);
             } 
 
@@ -618,7 +620,6 @@ void vblankEnd(Bus* bus){
   // copy all x components from t to v
   bus->ppu->vregister2.courseX = bus->ppu->tregister.courseX;
   bus->ppu->vregister2.nameTableSelect = (bus->ppu->tregister.nameTableSelect & 0b1);
-  bus->ppu->xregister = 
   
 
   // copy all y components from t to v
