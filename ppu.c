@@ -415,8 +415,8 @@ void renderScanline(PPU* ppu){
     // else if ppuctrl bit 3 is 1 then use 0x1000 as base
     bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
     bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8));
-    bit1 = getBitFromLeft(bitPlane1, ppu->xregister);
-    bit2 = getBitFromLeft(bitPlane2, ppu->xregister);
+    bit1 = getBitFromLeft(bitPlane1, (i % 8));
+    bit2 = getBitFromLeft(bitPlane2, (i % 8));
     bit1 = bit1 >> findBit(bit1);
     bit2 = bit2 >> findBit(bit2);
     bit2 = bit2 << 1;
@@ -424,15 +424,15 @@ void renderScanline(PPU* ppu){
     thirtytwobitPixelColour = ppu->palette[tempPalette[bitsCombined]];
     ppu->frameBuffer[ppu->scanLine][i] = thirtytwobitPixelColour;
 
-    ppu->xregister++;
+
     if(i % 8 == 7){
+      //printf("tempV2: %x \n", 0x2000 + tempV2);
       if(ppu->vregister2.courseX == 31){
         ppu->vregister2.courseX = 0;
-        ppu->vregister2.nameTableSelect = setBit(ppu->vregister2.nameTableSelect, 0);
+        ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) | setBit(ppu->vregister2.nameTableSelect, 0);
 
       } else {
         ppu->vregister2.courseX++;
-        ppu->xregister = 0;
       }
     }
    
@@ -543,16 +543,31 @@ void renderScanline(PPU* ppu){
   
   }
 
-  
+  // hori(v) = hori(t)
+  //printf("%x \n", ppu->tregister.courseX);
   ppu->vregister2.courseX = ppu->tregister.courseX;
   ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) | getBit(ppu->tregister.nameTableSelect, 0);
 
-  ppu->vregister2.fineY++;
   
-  if(ppu->scanLine % 8 == 7){
+  if(ppu->vregister2.fineY < 7){
+    ppu->vregister2.fineY++;
+  } else {
     ppu->vregister2.fineY = 0;
-    ppu->vregister2.courseY++;
+    if(ppu->vregister2.courseY == 29){
+      ppu->vregister2.courseY = 0;
+      ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) ^ 0b10 | getBit(ppu->vregister2.nameTableSelect, 0);
+  
+    } else if(ppu->vregister2.courseY == 31){
+      ppu->vregister2.courseY = 0;
+
+    } else {
+      ppu->vregister2.courseY++;
+
+    }
+
+
   }
+
   
  
  
@@ -614,14 +629,14 @@ void vblankEnd(Bus* bus){
   // copy all x components from t to v
   bus->ppu->vregister2.courseX = bus->ppu->tregister.courseX;
   bus->ppu->vregister2.nameTableSelect = (bus->ppu->tregister.nameTableSelect & 0b1);
-  bus->ppu->xregister = 0;
+  bus->ppu->xregister = 
   
 
   // copy all y components from t to v
 
   bus->ppu->vregister2.courseY = bus->ppu->tregister.courseY;
   bus->ppu->vregister2.fineY = bus->ppu->tregister.fineY;
-  bus->ppu->vregister2.nameTableSelect = bus->ppu->vregister2.nameTableSelect | (bus->ppu->tregister.nameTableSelect & 0b10);
+  bus->ppu->vregister2.nameTableSelect = getBit(bus->ppu->vregister2.nameTableSelect, 0) | getBit(bus->ppu->tregister.nameTableSelect, 1);
 
 }
 
