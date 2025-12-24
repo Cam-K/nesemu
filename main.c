@@ -513,13 +513,13 @@ void startNes(char* romPath, int screenScaling){
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     printf("SDL initialized! \n");
-
       // main loop
       // decodes and executes 1 scanline worth of instructions, then instructs ppu to render the scanline
       // once a 240 scanlines have been rendered, draw framebuffer to SDL and enable a vblank
  
       
       bus.ppu->scanLine = 0;
+      bus.cpu->cycles = 0;
       while(1){
         if(bus.cpu->cycles < CPU_CYCLES_PER_SCANLINE){
           oppCode = readBus(&bus, bus.cpu->pc);

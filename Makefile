@@ -1,8 +1,10 @@
 CC=gcc
-CFLAGS= `sdl2-config --cflags --libs` -lcjson -I. -g -lSDL2_image -lm 
+WCC=x86_64-w64-mingw32-gcc 
+CFLAGS= `sdl2-config --cflags --libs` -lcjson -I. -g  -lm 
+
 
 all: general.o ppu.o cpu.o memory.o main.o
-	$(CC) general.o cpu.o memory.o ppu.o main.o $(CFLAGS) -o nesemu 
+	$(CC) general.o cpu.o memory.o ppu.o main.o $(CFLAGS) -o nesemu
 
 cpu.o: cpu.c 
 	$(CC) $(CFLAGS) -c cpu.c

@@ -598,7 +598,6 @@ int decodeAndExecute(CPU* cpu, Bus* bus, uint8_t oppCode){
 
       break;
   } 
-  
   return cyclesCompleted;
 
 }
@@ -1735,6 +1734,7 @@ int txa(CPU* cpu){
   checkNFlag(cpu, cpu->a);
   checkZFlag(cpu, cpu->a);
   cpu->pc++;
+  return 2;
 }
 
 int txs(CPU* cpu){

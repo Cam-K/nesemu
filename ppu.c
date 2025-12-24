@@ -306,7 +306,6 @@ void renderScanline(PPU* ppu){
   int pixelY;
   uint8_t oamIndices[8];
   uint8_t tempPalette[4]; 
-  uint16_t baseNametableAddress;
   uint16_t tempV2;
   uint8_t tileNumberOfTopSprite;
 
