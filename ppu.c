@@ -413,6 +413,7 @@ void renderScanline(PPU* ppu){
     // So indice 0x24 will reside at address 0x0240 for instance
     // if ppuctrl bit 3 is 0, then use 0x0000 as base, 
     // else if ppuctrl bit 3 is 1 then use 0x1000 as base
+    if(getBit(ppu->mask, 3) == 0b1000){
     bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
     bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8));
     bit1 = getBitFromLeft(bitPlane1, (i % 8));
@@ -423,6 +424,10 @@ void renderScanline(PPU* ppu){
     bitsCombined = bit1 | bit2;
     thirtytwobitPixelColour = ppu->palette[tempPalette[bitsCombined]];
     ppu->frameBuffer[ppu->scanLine][i] = thirtytwobitPixelColour;
+    } else if(getBit(ppu->mask, 3) == 0){
+      ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[0]];
+
+    }
 
 
     if(i % 8 == 7){
@@ -516,8 +521,8 @@ void renderScanline(PPU* ppu){
         bit2 = bit2 << 1;
         bitsCombined = bit1 | bit2;
 
-        // if the colour isn't a transparency pixel, draw the pixel
-        if(bitsCombined != 0){
+        // if the colour isn't a transparency pixel and sprite rendering is enabled, draw the pixel
+        if(bitsCombined != 0 && getBit(ppu->mask, 4) == 0b10000){
 
           // if the background isn't transparent or the sprite is behind the backgrond, draw the pixel
           if(ppu->frameBuffer[ppu->scanLine][i] == 0 || getBit(ppu->oam[oamIndices[j] + 2], 5) == 0){
