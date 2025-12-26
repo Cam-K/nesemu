@@ -79,6 +79,24 @@ uint8_t findBit(uint8_t val){
 
 }
 
+
+
+uint16_t findBit16bit(uint16_t val){
+
+  int placement;
+  for(int i = 0; i < 16; ++i){
+    if((val & (1 << i)) != 0){
+      placement = i;
+      break;
+    }
+
+  }
+
+  return placement;
+
+}
+
+
 uint8_t shiftRightWithWrap(uint8_t oper,  uint8_t shiftAmt){
   uint8_t carry;
   uint8_t temp = oper;

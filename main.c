@@ -460,7 +460,7 @@ void startNes(char* romPath, int screenScaling){
   mirroring = getBit(tempInt, 0);
   printf("mirroring %d \n", bus.ppu->mirroring);
   bus.mapper = (bus.mapper | ((fgetc(romPtr) & 0b11110000)));
-
+  
   fgetc(romPtr);
   if(fgetc(romPtr) == 1){
     printf("Error: PAL Rom detected \n");

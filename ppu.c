@@ -67,6 +67,9 @@ void resetPpu(PPU* ppu, int powerFlag){
   ppu->vregister2.nameTableSelect = 0;
   ppu->xregister = 0;
 
+  ppu->bitPlane1 = 0;
+  ppu->bitPlane2 = 0;
+
   
 
 }
@@ -291,8 +294,8 @@ void renderScanline(PPU* ppu){
   uint8_t bitPlane2;
   uint16_t bitPlane1_16;
   uint16_t bitPlane2_16;
-  uint8_t bit1;
-  uint8_t bit2;
+  uint16_t bit1;
+  uint16_t bit2;
   uint8_t bitsCombined;
   uint8_t pixelValue1;
   uint8_t pixelValue2;
@@ -389,34 +392,37 @@ void renderScanline(PPU* ppu){
     // if ppuctrl bit 3 is 0, then use 0x0000 as base, 
     // else if ppuctrl bit 3 is 1 then use 0x1000 as base
     if(getBit(ppu->mask, 3) == 0b1000){
-      bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
-      bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8));
-      bit1 = getBitFromLeft(bitPlane1, (i % 8));
-      bit2 = getBitFromLeft(bitPlane2, (i % 8));
-      bit1 = bit1 >> findBit(bit1);
-      bit2 = bit2 >> findBit(bit2);
+
+      if(i != 0 && i % 8 == 0){ 
+        //printf("fetching new bitplane \n");
+        ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY);
+        ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8);
+        //printf("bitplane1 %x \n", ppu->bitPlane1);
+      }
+
+      // parse the two bits from the two shift registers
+      bit1 = getBitFromLeft16bit(ppu->bitPlane1, ppu->xregister);
+      bit2 = getBitFromLeft16bit(ppu->bitPlane2, ppu->xregister);
+      bit1 = bit1 >> findBit16bit(bit1);
+      bit2 = bit2 >> findBit16bit(bit2);
       bit2 = bit2 << 1;
       bitsCombined = bit1 | bit2;
       thirtytwobitPixelColour = ppu->palette[tempPalette[bitsCombined]];
       ppu->frameBuffer[ppu->scanLine][i] = thirtytwobitPixelColour;
 
+      ppu->bitPlane1 = ppu->bitPlane1 << 1;
+      ppu->bitPlane2 = ppu->bitPlane2 << 1;
+
+
     // this is kept for later when checking for a sprite zero hit
-    bitsCombinedBackground = bitsCombined;
+      bitsCombinedBackground = bitsCombined;
     } else if(getBit(ppu->mask, 3) == 0){
       ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[0]];
-
     }
 
 
-    if(i % 8 == 7){
-      //printf("tempV2: %x \n", 0x2000 + tempV2);
-      if(ppu->vregister2.courseX == 31){
-        ppu->vregister2.courseX = 0;
-        ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) | (getBit(ppu->vregister2.nameTableSelect, 0) ^ 0b01);
-
-      } else {
-        ppu->vregister2.courseX++;
-      }
+    if(i != 0 && i % 8 == 0){
+      incrementCourseX(ppu);
     }
    
 
@@ -503,7 +509,7 @@ void renderScanline(PPU* ppu){
         if(bitsCombined != 0 && getBit(ppu->mask, 4) == 0b10000){
 
           // if the background isn't transparent or the sprite is behind the backgrond, draw the pixel
-          if(ppu->frameBuffer[ppu->scanLine][i] == 0 || getBit(ppu->oam[oamIndices[j] + 2], 5) == 0){
+          if(bitsCombinedBackground == 0 || getBit(ppu->oam[oamIndices[j] + 2], 5) == 0){
           // fetch sprite palette index from oam memory and set palette
             spritePaletteIndex = getBit(ppu->oam[oamIndices[j] + 2], 0);
             spritePaletteIndex = spritePaletteIndex | getBit(ppu->oam[oamIndices[j] + 2], 1);
@@ -514,12 +520,14 @@ void renderScanline(PPU* ppu){
             tempPalette[3] = readPpuBus(ppu, 0x3f10 + 3 + (spritePaletteIndex * 4));
 
             // sprite zero hit
-            if(oamIndices[j] == 0 && bitsCombinedBackground != 0){
-              ppu->status = setBit(ppu->status, 6);
-              printf("sprite zero hit \n");
-            } 
 
             ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[bitsCombined]];
+          }
+
+
+          // sprite zero hit
+          if(oamIndices[j] == 0 && bitsCombinedBackground != 0 && getBit(ppu->mask, 3) != 0 && bitsCombined != 0 && getBit(ppu->status, 6) == 0){
+            ppu->status = setBit(ppu->status, 6);
           }
         }
     }
@@ -549,12 +557,43 @@ void renderScanline(PPU* ppu){
 
     }
 
-
   }
 
-  
+
+    tempV2 = 0;
+    tempV2 = ppu->vregister2.courseX;
+    tempV2 = tempV2 | (((uint16_t)ppu->vregister2.courseY) << 5);
+    tempV2 = tempV2 | (((uint32_t) ppu->vregister2.nameTableSelect) << 10);
+
+    patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
+
+    ppu->bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
+    ppu->bitPlane1 = ppu->bitPlane1 << 8;
+
+    ppu->bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8));
+    ppu->bitPlane2 = ppu->bitPlane2 << 8;
+
+    incrementCourseX(ppu);
+    patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
+    ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
+    ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8));
+   
+    incrementCourseX(ppu);
+
  
  
+}
+
+void incrementCourseX(PPU* ppu){
+
+    if(ppu->vregister2.courseX == 31){
+      ppu->vregister2.courseX = 0;
+      ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) | (getBit(ppu->vregister2.nameTableSelect, 0) ^ 0b01);
+
+    } else {
+      ppu->vregister2.courseX++;
+    }
+
 }
 
 

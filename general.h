@@ -33,3 +33,4 @@ uint8_t shiftLeftWithWrap(uint8_t, uint8_t);
 uint16_t getBitFromLeft16bit(uint16_t, uint8_t);
 uint16_t clearBitFromLeft16bit(uint16_t, uint8_t);
 uint16_t setBitFromLeft16bit(uint16_t, uint8_t);
+uint16_t findBit16bit(uint16_t);

@@ -74,7 +74,8 @@ typedef struct _PPU {
   
 
   // NOTE: The following registers require an understanding of https://www.nesdev.org/wiki/PPU_scrolling
-  // used to hold the ppu addres
+
+  // used to hold the ppu address for PPUADDR and PPUDATA
   uint16_t vregister1;
   
 
@@ -87,6 +88,9 @@ typedef struct _PPU {
 
   // currently drawn nametable address
   struct VComponent vregister2;
+
+  uint16_t bitPlane1;
+  uint16_t bitPlane2;
 
 
   // variable to track whether the nes is in vertical blanking or not
@@ -137,3 +141,6 @@ int getEightSixteen(PPU*);
 
 // draws the completed framebuffer to screen in SDL
 void drawFrameBuffer(PPU*, SDL_Renderer*, SDL_Texture*);
+
+
+void incrementCourseX(PPU*);
