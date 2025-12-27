@@ -282,6 +282,8 @@ int spriteEvaluation(PPU* ppu, uint8_t* oamIndices, int eightSixteenSpriteFlag){
 //     ppu - ppu to render a scanline with 
 //
 
+
+
 void renderScanline(PPU* ppu){
   uint8_t currentIndiceBitPlane1;
   uint8_t currentIndiceBitPlane2;
@@ -292,17 +294,16 @@ void renderScanline(PPU* ppu){
   uint16_t patternTableIndice2;
   uint8_t bitPlane1;
   uint8_t bitPlane2;
-  uint16_t bitPlane1_16;
-  uint16_t bitPlane2_16;
-  uint16_t bit1;
-  uint16_t bit2;
+  uint8_t bit1;
+  uint8_t bit2;
+  uint16_t bit1_16;
+  uint16_t bit2_16;
   uint8_t bitsCombined;
   uint8_t pixelValue1;
   uint8_t pixelValue2;
   struct VComponent vcomp;
   uint8_t pixelValueFinal;
   uint16_t patternTableOffset;
-  uint8_t fineX;
   uint16_t spriteOffset;
   uint8_t spritePaletteIndex;
   uint8_t bitsCombinedBackground;
@@ -342,16 +343,12 @@ void renderScanline(PPU* ppu){
 
   for(int i = 0; i < WINDOW_WIDTH; ++i){
 
-    // First, draw background
     
-    tempV2 = 0;
-    tempV2 = ppu->vregister2.courseX;
-    tempV2 = tempV2 | (((uint16_t)ppu->vregister2.courseY) << 5);
-    tempV2 = tempV2 | (((uint32_t) ppu->vregister2.nameTableSelect) << 10);
-    //printf("tempv2 %x \n", 0x2000 + tempV2);
-
+  
+    fillTempV(&tempV2, ppu->vregister2);
 
     
+    // fetch patterntable indice for nametable at 0x2000 + tempV2
     patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
    
     
@@ -359,56 +356,39 @@ void renderScanline(PPU* ppu){
 
     // fetch attributetable byte using formula
     attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV2 & 0x0c00) | ((tempV2 >> 4) & 0x38) | ((tempV2 >> 2) & 0x07));
-    if(i % 16 == 0){
-      attributeTableQuandrant = getAttributeQuadrant(i, ppu->scanLine);
-    }
+    attributeTableByte = findAndReturnAttributeByte(i, ppu->scanLine, attributeTableByte);
+    
 
-    // find which quadrant the beam resides in
-    if(attributeTableQuandrant == 0){
-      attributeTableByte = attributeTableByte & 0b11;
-    } else if (attributeTableQuandrant == 1){
-      attributeTableByte = attributeTableByte & 0b1100;
-      attributeTableByte = attributeTableByte >> 2;
-    } else if(attributeTableQuandrant == 2){
-      attributeTableByte = attributeTableByte & 0b110000;
-      attributeTableByte = attributeTableByte >> 4;
-    } else if(attributeTableQuandrant == 3){
-      attributeTableByte = attributeTableByte & 0b11000000;
-      attributeTableByte = attributeTableByte >> 6;
-    }
+    // store recently fetched attribute data in buffer
+    ppu->attributeData = ppu->attributeData | (attributeTableByte << 2);
   
-    // fetch palette using attributetable 
-    tempPalette[0] = readPpuBus(ppu, 0x3f00 + 0 + (attributeTableByte * 4));
-    tempPalette[1] = readPpuBus(ppu, 0x3f00 + 1 + (attributeTableByte * 4));
-    tempPalette[2] = readPpuBus(ppu, 0x3f00 + 2 + (attributeTableByte * 4));
-    tempPalette[3] = readPpuBus(ppu, 0x3f00 + 3 + (attributeTableByte * 4));
+    // fetch palette using attributedata
+    tempPalette[0] = readPpuBus(ppu, 0x3f00 + 0 + (ppu->attributeData & 0x3) * 4);
+    tempPalette[1] = readPpuBus(ppu, 0x3f00 + 1 + (ppu->attributeData & 0x3) * 4);
+    tempPalette[2] = readPpuBus(ppu, 0x3f00 + 2 + (ppu->attributeData & 0x3) * 4);
+    tempPalette[3] = readPpuBus(ppu, 0x3f00 + 3 + (ppu->attributeData & 0x3) * 4);
+    ppu->attributeData = ppu->attributeData >> 2;
+
+  
 
 
     
 
-    // patternTableIndice << 4 because this will yield 0x0ff0 when you left shift 0xff for instance
-    //
-    // So indice 0x24 will reside at address 0x0240 for instance
-    // if ppuctrl bit 3 is 0, then use 0x0000 as base, 
-    // else if ppuctrl bit 3 is 1 then use 0x1000 as base
     if(getBit(ppu->mask, 3) == 0b1000){
 
       if(i != 0 && i % 8 == 0){ 
-        //printf("fetching new bitplane \n");
         ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY);
         ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8);
-        //printf("bitplane1 %x \n", ppu->bitPlane1);
       }
 
       // parse the two bits from the two shift registers
-      bit1 = getBitFromLeft16bit(ppu->bitPlane1, ppu->xregister);
-      bit2 = getBitFromLeft16bit(ppu->bitPlane2, ppu->xregister);
-      bit1 = bit1 >> findBit16bit(bit1);
-      bit2 = bit2 >> findBit16bit(bit2);
-      bit2 = bit2 << 1;
-      bitsCombined = bit1 | bit2;
-      thirtytwobitPixelColour = ppu->palette[tempPalette[bitsCombined]];
-      ppu->frameBuffer[ppu->scanLine][i] = thirtytwobitPixelColour;
+      bit1_16 = getBitFromLeft16bit(ppu->bitPlane1, ppu->xregister);
+      bit2_16 = getBitFromLeft16bit(ppu->bitPlane2, ppu->xregister);
+      bit1_16 = bit1_16 >> findBit16bit(bit1_16);
+      bit2_16 = bit2_16 >> findBit16bit(bit2_16);
+      bit2_16 = bit2_16 << 1;
+      bitsCombined = bit1_16 | bit2_16;
+      ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[bitsCombined]];
 
       ppu->bitPlane1 = ppu->bitPlane1 << 1;
       ppu->bitPlane2 = ppu->bitPlane2 << 1;
@@ -439,9 +419,9 @@ void renderScanline(PPU* ppu){
         }
       }
       // + 3 because this gets the X coordinate of the tile
-      if(ppu->oam[oamIndices[j] + 3] <= i && ppu->oam[oamIndices[j] + 3] + 8 >= i){
       // if the beam is within the boundaries of foreground tile, draw the pixel
-
+      if(ppu->oam[oamIndices[j] + 3] <= i && ppu->oam[oamIndices[j] + 3] + 7 >= i){
+ 
 
        if(eightSixteenSpriteFlag == 0){
 
@@ -530,6 +510,10 @@ void renderScanline(PPU* ppu){
             ppu->status = setBit(ppu->status, 6);
           }
         }
+        if(bitsCombined != 0){
+          break;
+
+        }
     }
   }
   
@@ -560,13 +544,23 @@ void renderScanline(PPU* ppu){
   }
 
 
-    tempV2 = 0;
-    tempV2 = ppu->vregister2.courseX;
-    tempV2 = tempV2 | (((uint16_t)ppu->vregister2.courseY) << 5);
-    tempV2 = tempV2 | (((uint32_t) ppu->vregister2.nameTableSelect) << 10);
+    fillTempV(&tempV2, ppu->vregister2);
 
+
+    // fetch nametable
     patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
 
+
+    // fetch attribute table byte 
+    attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV2 & 0x0c00) | ((tempV2 >> 4) & 0x38) | ((tempV2 >> 2) & 0x07));
+    attributeTableByte = findAndReturnAttributeByte(0, ppu->scanLine + 1, attributeTableByte);
+
+
+    ppu->attributeData = ppu->attributeData | (attributeTableByte << 2);
+    ppu->attributeData = ppu->attributeData >> 2;
+
+
+    // fetch low and high bitplanes of patterntable
     ppu->bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
     ppu->bitPlane1 = ppu->bitPlane1 << 8;
 
@@ -574,15 +568,46 @@ void renderScanline(PPU* ppu){
     ppu->bitPlane2 = ppu->bitPlane2 << 8;
 
     incrementCourseX(ppu);
+    fillTempV(&tempV2, ppu->vregister2);
+
+    // fetch pattern table ID
     patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
+
+    // fetch attribute table byte
+    attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV2 & 0x0c00) | ((tempV2 >> 4) & 0x38) | ((tempV2 >> 2) & 0x07));
+    attributeTableByte = findAndReturnAttributeByte(1, ppu->scanLine + 1, attributeTableByte);
+
+    ppu->attributeData = ppu->attributeData | (attributeTableByte << 2);
+
+
+    // fetch low and high bitplanes of patterntable
     ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
     ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8));
+
+
    
     incrementCourseX(ppu);
 
  
  
 }
+
+
+// fillTempV()
+//   populates an unsigned integer with the individual components of a VComponent
+//   into their respective bit positions
+//  output:
+//    tempV2 - unsigned integer to fill
+//  input:
+//    vreg - a struct VComponent to source the data from 
+void fillTempV(uint16_t *tempV, struct VComponent vreg){
+    *tempV = 0;
+    *tempV = vreg.courseX;
+    *tempV = *tempV | (((uint16_t)vreg.courseY) << 5);
+    *tempV = *tempV | (((uint32_t) vreg.nameTableSelect) << 10);
+}
+
+
 
 void incrementCourseX(PPU* ppu){
 
@@ -670,14 +695,15 @@ void vblankEnd(Bus* bus){
 
 
 
-// getAttributeQuadrant()
-//   returns the numbered quadrant that the beam is in
-//   with each quadrant being a 32x32 pixel (4x4 tile) mapped onto a 256x240 pixel cartesian system 
+// findAndReturnAttributeByte()
+//   finds which quadrant the beam resides in, then returns the appropriate 2-bit attribute data for the corresponding
+//   quadrant
 // inputs
 //   x - x coordinate
 //   y - y coordinate
+//   attributeTableByte - attributeTabledata to select from
 // outputs
-//   int - quadrant number of corresponding beam position
+//   uint8_t - 2 bit attribute data for corresponding quadrant
 /*
  * 
 
@@ -688,7 +714,7 @@ void vblankEnd(Bus* bus){
 
  */
 
-int getAttributeQuadrant(int x, int y){
+uint8_t findAndReturnAttributeByte(int x, int y, uint8_t attributeTableByte){
 
   int quadrant;
   
@@ -1241,8 +1267,21 @@ int getAttributeQuadrant(int x, int y){
     } 
   }
 
+  if(quadrant == 0){
+      attributeTableByte = attributeTableByte & 0b11;
+  } else if (quadrant == 1){
+    attributeTableByte = attributeTableByte & 0b1100;
+    attributeTableByte = attributeTableByte >> 2;
+  } else if(quadrant == 2){
+    attributeTableByte = attributeTableByte & 0b110000;
+    attributeTableByte = attributeTableByte >> 4;
+  } else if(quadrant == 3){
+    attributeTableByte = attributeTableByte & 0b11000000;
+    attributeTableByte = attributeTableByte >> 6;
+  }
 
-  return quadrant;
+
+  return attributeTableByte;
 
   
 }

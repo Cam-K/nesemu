@@ -89,9 +89,15 @@ typedef struct _PPU {
   // currently drawn nametable address
   struct VComponent vregister2;
 
+  // 16-bit shift registers used for storing pattern table data
   uint16_t bitPlane1;
   uint16_t bitPlane2;
 
+  // shift register for storing attribute data
+  // sets of two bits, composed of two sets each
+  // |0|0|0|0|S2|S2|S1|S1|
+  // each set gets popped off the front (lsb) of the integer
+  uint8_t attributeData;
 
   // variable to track whether the nes is in vertical blanking or not
   int vblank;
@@ -129,7 +135,7 @@ void allocateNewFrameBuffer(PPU*);
 
 void printNameTable(Bus*);
 
-int getAttributeQuadrant(int, int);
+uint8_t findAndReturnAttributeByte(int, int, uint8_t);
 
 void dmaTransfer(Bus*);
 
@@ -144,3 +150,6 @@ void drawFrameBuffer(PPU*, SDL_Renderer*, SDL_Texture*);
 
 
 void incrementCourseX(PPU*);
+
+void fillTempV(uint16_t*, struct VComponent); 
+
