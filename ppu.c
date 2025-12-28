@@ -355,12 +355,15 @@ void renderScanline(PPU* ppu){
 
 
     // fetch attributetable byte using formula
+    if(i % 16 == 0){
     attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV2 & 0x0c00) | ((tempV2 >> 4) & 0x38) | ((tempV2 >> 2) & 0x07));
     attributeTableByte = findAndReturnAttributeByte(i, ppu->scanLine, attributeTableByte);
     
 
     // store recently fetched attribute data in buffer
     ppu->attributeData = ppu->attributeData | (attributeTableByte << 2);
+
+    }
   
     // *****************************************
 
@@ -374,8 +377,9 @@ void renderScanline(PPU* ppu){
     tempPalette[3] = readPpuBus(ppu, 0x3f00 + 3 + (ppu->attributeData & 0x3) * 4);
 
     
-    ppu->attributeData = ppu->attributeData >> 2;
-
+    if(i % 16 == 0){
+      ppu->attributeData = ppu->attributeData >> 2;
+    }
   
 
 
