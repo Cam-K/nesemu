@@ -344,7 +344,7 @@ void renderScanline(PPU* ppu){
   for(int i = 0; i < WINDOW_WIDTH; ++i){
 
     
-  
+    // *** THIS IS DONE TWO TILES AHEAD ***
     fillTempV(&tempV2, ppu->vregister2);
 
     
@@ -362,11 +362,18 @@ void renderScanline(PPU* ppu){
     // store recently fetched attribute data in buffer
     ppu->attributeData = ppu->attributeData | (attributeTableByte << 2);
   
-    // fetch palette using attributedata
-    tempPalette[0] = readPpuBus(ppu, 0x3f00 + 0 + (ppu->attributeData & 0x3) * 4);
+    // *****************************************
+
+    // Once the data has been fetched for the two tiles ahead, start rendering the background pixel using data from
+    // the shift registers
+    
+    // fetch palette using shift register
+    tempPalette[0] = readPpuBus(ppu, 0x3f00 + 0);
     tempPalette[1] = readPpuBus(ppu, 0x3f00 + 1 + (ppu->attributeData & 0x3) * 4);
     tempPalette[2] = readPpuBus(ppu, 0x3f00 + 2 + (ppu->attributeData & 0x3) * 4);
     tempPalette[3] = readPpuBus(ppu, 0x3f00 + 3 + (ppu->attributeData & 0x3) * 4);
+
+    
     ppu->attributeData = ppu->attributeData >> 2;
 
   
@@ -376,18 +383,21 @@ void renderScanline(PPU* ppu){
 
     if(getBit(ppu->mask, 3) == 0b1000){
 
+      // every tile, fetch the two bitplanes from the patterntable two tiles ahead
       if(i != 0 && i % 8 == 0){ 
         ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY);
         ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8);
       }
 
-      // parse the two bits from the two shift registers
+      // using data from the shift register, get the two bits from the bitplanes from the end of the shift registers
       bit1_16 = getBitFromLeft16bit(ppu->bitPlane1, ppu->xregister);
       bit2_16 = getBitFromLeft16bit(ppu->bitPlane2, ppu->xregister);
       bit1_16 = bit1_16 >> findBit16bit(bit1_16);
       bit2_16 = bit2_16 >> findBit16bit(bit2_16);
       bit2_16 = bit2_16 << 1;
       bitsCombined = bit1_16 | bit2_16;
+
+      // find 24Bit rgb value and set the pixel value to this
       ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[bitsCombined]];
 
       ppu->bitPlane1 = ppu->bitPlane1 << 1;
@@ -407,7 +417,7 @@ void renderScanline(PPU* ppu){
    
 
     
-    // Second, now iterate through the amount of sprites that were found at the beginning of the scanline and display them if the beam resides in it's X coordinate
+    // Second, now iterate through the amount of sprites that were found from Sprite Evaluation and display them if the beam resides in it's X coordinate
     for(int j = 0; j < spriteEvalCounter; ++j){
 
       // if rendering 8x16 sprites, fetch the spriteOffset from byte 1 of the OAM as opposed to bit 5 of PPUCTRL
@@ -418,6 +428,7 @@ void renderScanline(PPU* ppu){
           spriteOffset = 0x1000;
         }
       }
+
       // + 3 because this gets the X coordinate of the tile
       // if the beam is within the boundaries of foreground tile, draw the pixel
       if(ppu->oam[oamIndices[j] + 3] <= i && ppu->oam[oamIndices[j] + 3] + 8 >= i){
@@ -512,7 +523,8 @@ void renderScanline(PPU* ppu){
         }
 
         // sprite priority implementation
-        //   break if the the current pixel's sprite is not transparent, not drawing any further pixels ontop of it
+        //   break if the the current pixel's sprite is not transparent, not drawing any further pixels ontop of it and ending iterating 
+        //   through the sprites.
         if(bitsCombined != 0){
           break;
 
@@ -544,7 +556,8 @@ void renderScanline(PPU* ppu){
     }
 
   }
-
+  
+  // gets shift registers ready for next scanline; fetches the first two tiles of the next line
   fetchFirstTwoTiles(ppu, patternTableOffset);
 
  

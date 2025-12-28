@@ -1,5 +1,5 @@
 CC=gcc
-WCC=x86_64-w64-mingw32-gcc 
+WCC=x86_64-w64-mingw32-gcc-10-posix
 CFLAGS= `sdl2-config --cflags --libs` -lcjson -I. -g  -lm 
 
 
@@ -20,6 +20,7 @@ ppu.o: ppu.c
 
 general.o: general.c
 	$(CC) $(CFLAGS) -c general.c
+
 
 
 
