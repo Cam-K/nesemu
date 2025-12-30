@@ -16,6 +16,23 @@ uint8_t getBit(uint8_t val, uint8_t bitNum){
 
 }
 
+
+
+
+uint16_t setBit16bit(uint16_t val, uint8_t bitNum){
+    return val | (1 << bitNum);
+}
+
+uint16_t clearBit16bit(uint16_t val, uint8_t bitNum){
+    return val & ~(1 << bitNum);
+
+}
+
+uint16_t getBit16bit(uint16_t val, uint8_t bitNum){
+  return val & (1 << bitNum);
+}
+
+
 // Function: bitToBitNum()
 // Finds the first occurance of a bit that is a 1
 // and returns the position of where it is as an integer

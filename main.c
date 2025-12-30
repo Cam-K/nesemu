@@ -530,6 +530,7 @@ void startNes(char* romPath, int screenScaling){
           }
             bus.cpu->cycles = 0;
             bus.ppu->scanLine++;
+
             //printf("Scanline %d \n", bus.ppu->scanLine);
             if(bus.ppu->scanLine == 240){
               // Mirroring hack because bus.ppu->mirroring gets set with 0 despite us setting it to 1 for some reason

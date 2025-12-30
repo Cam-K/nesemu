@@ -99,6 +99,15 @@ typedef struct _PPU {
   // each set gets popped off the front (lsb) of the integer
   uint8_t attributeData;
 
+
+  // attribute data shift registers
+  uint16_t attributeData1;
+  uint16_t attributeData2;
+
+  // shift registers that feed attributeData1 and attributeData2
+  // written into for every 8th pixel (same dot at which course X of V is incremented)
+
+
   // variable to track whether the nes is in vertical blanking or not
   int vblank;
   
@@ -150,6 +159,7 @@ void drawFrameBuffer(PPU*, SDL_Renderer*, SDL_Texture*);
 
 
 void incrementCourseX(PPU*);
+void incrementY(PPU*);
 void fetchFirstTwoTiles(PPU*, uint16_t);
 
 void fillTempV(uint16_t*, struct VComponent); 
