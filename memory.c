@@ -294,7 +294,7 @@ uint8_t readBus(Bus* bus, uint16_t addr){
           return ((bus->ppu->addr & 0xff00) >> 8);
         }
       case 0x2007:
-        return bus->ppu->data;
+        return readPpuBus(bus->ppu, bus->ppu->vregister1);
     }
   } else if(addr == 0x4016){
     //printf("reading controller one \n");
