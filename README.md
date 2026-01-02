@@ -38,5 +38,8 @@ Currently a work in progress.
 
 ## Screenshots
 
-![Donkey Kong](https://i.imgur.com/anXIS6H.png)![Bomberman](https://i.imgur.com/mExS8PW.png)
+<div style="text-align: center;">
+![Donkey Kong](https://i.imgur.com/anXIS6H.png)
+![Bomberman](https://i.imgur.com/mExS8PW.png)
 
+</div>
