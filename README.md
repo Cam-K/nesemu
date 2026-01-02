@@ -1,5 +1,5 @@
-# Nintendo Entertainment System Emulator
-An NES emulator, written in C and SDL2.
+# nesemu
+A Nintendo Entertainment System emulator, written in C and SDL2.
 
 Only compatible with mapper 0 games at the moment.
 Able to boot games such as Balloon Fight and Donkey Kong.
@@ -38,5 +38,8 @@ Currently a work in progress.
 
 ## Screenshots
 
+<div style="text-align: center;">
 ![Donkey Kong](https://i.imgur.com/anXIS6H.png)
 ![Bomberman](https://i.imgur.com/mExS8PW.png)
+
+</div>
