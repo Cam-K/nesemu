@@ -50,6 +50,9 @@ typedef struct _PPU {
   
   int scanLine;
 
+  // flag is set when the ppu is rendering the prerender scanline (scanline 261)
+  int prerenderScanlineFlag;
+
   // CHR-ROM cartridge contents
   // 8192 array of bytes 
   uint8_t* chrrom;
@@ -161,3 +164,4 @@ void fetchFirstTwoTiles(PPU*, uint16_t);
 
 void fillTempV(uint16_t*, struct VComponent); 
 
+void prerenderScanline(Bus*);

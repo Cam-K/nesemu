@@ -498,9 +498,8 @@ void startNes(char* romPath, int screenScaling){
       }
       
       // loads chr-rom into ppu memory
-      // (pattern-tables)
       for(int i = 0; i < (8192 * numOfChrRoms); ++i){
-        writePpuBus(bus.ppu, i, fgetc(romPtr));
+        bus.ppu->chrrom[i] = fgetc(romPtr);
       }
       
       reset(bus.cpu, &bus);
@@ -525,7 +524,9 @@ void startNes(char* romPath, int screenScaling){
           bus.cpu->cycles += decodeAndExecute(bus.cpu, &bus, oppCode);
           //printf("cycles total: %d \n", bus.cpu->cycles);
         } else if(bus.cpu->cycles >= CPU_CYCLES_PER_SCANLINE){
-          if(bus.ppu->vblank == 0){
+
+          // render a scanline except while in vblank and during the prerender scanline (261)
+          if(bus.ppu->vblank == 0 && bus.ppu->prerenderScanlineFlag == 0){
             renderScanline(bus.ppu);
           }
             bus.cpu->cycles = 0;
@@ -534,16 +535,18 @@ void startNes(char* romPath, int screenScaling){
             //printf("Scanline %d \n", bus.ppu->scanLine);
             if(bus.ppu->scanLine == 240){
               // Mirroring hack because bus.ppu->mirroring gets set with 0 despite us setting it to 1 for some reason
-              bus.ppu->mirroring = mirroring;
+              bus.ppu->mirroring = mirroring;              
+
               vblankStart(&bus);
               drawFrameBuffer(bus.ppu, renderer, texture);
               //printNameTable(&bus);
             } else if(bus.ppu->scanLine == 260){
-              //printf("Frame %d \n", bus.ppu->frames);
               vblankEnd(&bus);
 
+            } else if(bus.ppu->scanLine == 261){
+              prerenderScanline(&bus);
 
-            } 
+            }
 
         }
         while (SDL_PollEvent(&event)) {
@@ -635,6 +638,8 @@ void startNes(char* romPath, int screenScaling){
 
 
 }
+
+
 
 void dumpFileToMemory(uint8_t* fileBuffer, Mem* mem, int offset, int size){
   

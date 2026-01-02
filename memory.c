@@ -183,7 +183,6 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
       case 0x2007:
         
         bus->ppu->data = val;
-        int overflowFlag;
         //printf("Writing to bus at $2007 \n");
         writePpuBus(bus->ppu, bus->ppu->vregister1, bus->ppu->data);
         //printf("Wrote to ppu bus %x with value %x \n", bus->ppu->vregister1, bus->ppu->data);
@@ -278,9 +277,8 @@ uint8_t readBus(Bus* bus, uint16_t addr){
         return bus->ppu->mask;
       case 0x2002:
         //printf("Reading status \n");
-        temp = bus->ppu->status;
-        bus->ppu->status = clearBit(bus->ppu->status, 7);
-        return temp;
+        //bus->ppu->status = clearBit(bus->ppu->status, 7);
+        return bus->ppu->status;
       case 0x2003:
         return bus->ppu->oamaddr;
       case 0x2004:
@@ -432,9 +430,9 @@ uint8_t readPpuBus(PPU* ppu, uint16_t addr){
 
 
 void writePpuBus(PPU* ppu, uint16_t addr, uint8_t val){
-  //printf("Writing to PPU address %x \n", addr);
+  //printf("Writing to PPU address %x with value %x \n", addr, val);
   if(addr >= 0x0000 && addr <= 0x1fff){
-    ppu->chrrom[addr] = val;
+    return;
   } else if(addr >= 0x2000 && addr <= 0x2fff){
 
 

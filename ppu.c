@@ -68,6 +68,9 @@ void resetPpu(PPU* ppu, int powerFlag){
 
   ppu->bitPlane1 = 0;
   ppu->bitPlane2 = 0;
+  ppu->data = 0;
+
+  ppu->prerenderScanlineFlag = 0;
 
   
 
@@ -309,13 +312,10 @@ void renderScanline(PPU* ppu){
   int spriteEvalCounter = 0;
   int eightSixteenSpriteFlag;
   uint16_t spritePatternTableOffset;
-  uint32_t thirtytwobitPixelColour;
   uint16_t spritePatternTableIndice;
-  int pixelY;
   uint8_t oamIndices[8];
   uint8_t tempPalette[4]; 
   uint16_t tempV2;
-  uint8_t tileNumberOfTopSprite;
 
   if(getBit(ppu->ctrl, 4) == 0){
     patternTableOffset = 0;
@@ -378,6 +378,7 @@ void renderScanline(PPU* ppu){
         }
         incrementCourseX(ppu);
       }
+
 
       // fetch data from shift registers for the current pixel
       currentAttributeData = (getBitFromLeft16bit(ppu->attributeData1, ppu->xregister) >> 15);
@@ -708,6 +709,7 @@ void vblankStart(Bus* bus){
   bus->ppu->status = setBit(bus->ppu->status, 7);
   bus->ppu->vblank = 1;
 
+
   // checks vblank enable bit
   if(getBit(bus->ppu->ctrl, 7) == 0b10000000){
     nmi(bus->cpu, bus);
@@ -726,16 +728,22 @@ void vblankEnd(Bus* bus){
   bus->ppu->status = clearBit(bus->ppu->status, 7);
 
   bus->ppu->vblank = 0;
-  bus->ppu->scanLine++;
   bus->ppu->frames++;
 
-  bus->ppu->scanLine = 0;
 
   // clears sprite 0 flag
   bus->ppu->status = clearBit(bus->ppu->status, 6);
 
   // clears sprite overflow flag
   bus->ppu->status = clearBit(bus->ppu->status, 5);
+  bus->ppu->prerenderScanlineFlag = 1;
+
+
+}
+
+
+
+void prerenderScanline(Bus* bus){
 
   // hori(v) = hori(t)
   // copy all x components from t to v
@@ -758,13 +766,9 @@ void vblankEnd(Bus* bus){
   }
   
   fetchFirstTwoTiles(bus->ppu, patternTableOffset);
- 
- 
-
+  bus->ppu->prerenderScanlineFlag = 0;
+  bus->ppu->scanLine = 0;
 }
-
-
-
 
 
 
