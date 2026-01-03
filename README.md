@@ -4,7 +4,7 @@ A Nintendo Entertainment System emulator, written in C and SDL2.
 Only compatible with mapper 0 games at the moment.
 Able to boot games such as Balloon Fight and Donkey Kong.
 
-Features a CPU tester to test against the Tom Harte tests with the appropriate JSON data.
+Features a CPU tester to check the core against the Tom Harte processor routines, with the appropriate JSON data.
 
 Currently a work in progress.
 

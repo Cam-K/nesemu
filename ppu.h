@@ -52,6 +52,14 @@ struct VComponent {
 };
 
 
+// union between a 16 bit integer and VComp to act as the dual purpose register for holding both scroll position
+// and the current VRAM address
+union VRegister {
+  uint16_t vreg;
+  struct VComponent vcomp;
+
+};
+
 typedef struct _PPU {
 
   // internal ppu registers
@@ -108,9 +116,10 @@ typedef struct _PPU {
   // fineX scroll component
   uint8_t xregister;
   
+  union VRegister vregister;
 
   // temporary nametable address (offset of top left nametable address)
-  struct VComponent tregister;
+  union VRegister tregister;
 
   // currently drawn nametable address
   struct VComponent vregister2;
@@ -183,7 +192,7 @@ void drawFrameBuffer(PPU*, SDL_Renderer*, SDL_Texture*);
 
 void incrementCourseX(PPU*);
 void incrementY(PPU*);
-void fetchFirstTwoTiles(PPU*, uint16_t);
+void fetchFirstTwoTiles(PPU*);
 
 void fillTempV(uint16_t*, struct VComponent); 
 

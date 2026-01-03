@@ -540,7 +540,8 @@ void startNes(char* romPath, int screenScaling){
       // main loop
       // decodes and executes 1 scanline worth of instructions, then instructs ppu to render the scanline
       // once a 240 scanlines have been rendered, draw framebuffer to SDL and enable a vblank
-
+      
+      
       bus.ppu->mirroring = mirroring;
       nesMainLoop(&bus, renderer, texture);
       break;
@@ -569,6 +570,11 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
       uint8_t oppCode;
       int mirroring = bus->ppu->mirroring;
       SDL_Event event;
+      int sdlFrames = 0;
+      int fps_lastTime = SDL_GetTicks();
+      int fps_current = 0;
+
+
       while(1){
         if(bus->cpu->cycles < CPU_CYCLES_PER_SCANLINE){
           oppCode = readBus(bus, bus->cpu->pc);
@@ -590,6 +596,15 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
 
               vblankStart(bus);
               drawFrameBuffer(bus->ppu, renderer, texture);
+              sdlFrames++;
+              if(fps_lastTime < SDL_GetTicks() - 1000){
+                fps_lastTime = SDL_GetTicks();
+                fps_current = sdlFrames;
+                sdlFrames = 0;
+                //printf("fps: %d \n", fps_current);
+
+              }
+              
               //printNameTable(&bus);
             } else if(bus->ppu->scanLine == 260){
               vblankEnd(bus);
@@ -600,6 +615,7 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
             }
 
         }
+
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
               case SDL_QUIT:

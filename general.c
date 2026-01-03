@@ -124,7 +124,7 @@ uint16_t findBit16bit(uint16_t val){
 
   int placement;
   for(int i = 0; i < 16; ++i){
-    if((val & (1 << i)) != 0){
+    if(getBit16bit(val, i) != 0){
       placement = i;
       break;
     }

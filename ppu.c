@@ -28,6 +28,7 @@
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "ansicolor.h"
 
@@ -88,6 +89,8 @@ void resetPpu(PPU* ppu, int powerFlag){
   ppu->vregister2.fineY = 0;
   ppu->vregister2.nameTableSelect = 0;
   ppu->xregister = 0;
+  ppu->vregister.vreg = 0;
+  ppu->tregister.vreg = 0;
 
   ppu->bitPlane1 = 0;
   ppu->bitPlane2 = 0;
@@ -95,6 +98,7 @@ void resetPpu(PPU* ppu, int powerFlag){
 
   ppu->prerenderScanlineFlag = 0;
 
+  
   
 
 }
@@ -124,74 +128,80 @@ void dmaTransfer(Bus* bus){
 //   hard-coding 24-bit rgb values for each of the nes' 64 colours
 //   table for nes to 24bit color conversion
 void populatePalette(PPU* ppu){
-  ppu->palette[0] = 0x7C7C7C;
-  ppu->palette[1] = 0x0000FC;
-  ppu->palette[2] = 0x0000BC;
-  ppu->palette[3] = 0x4428BC;
-  ppu->palette[4] = 0x940084;
-  ppu->palette[5] = 0xA80020;
-  ppu->palette[6] = 0xA81000;
-  ppu->palette[7] = 0x881400;
-  ppu->palette[8] = 0x503000;
-  ppu->palette[9] = 0x007800;
-  ppu->palette[10] = 0x006800;
-  ppu->palette[11] = 0x005800;
-  ppu->palette[12] = 0x004058;
+
+  
+  ppu->palette[0]  = 0x626262;
+  ppu->palette[1]  = 0x001fb2;
+  ppu->palette[2]  = 0x2404c8;
+  ppu->palette[3]  = 0x5200b2;
+  ppu->palette[4]  = 0x730076;
+  ppu->palette[5]  = 0x800024;
+  ppu->palette[6]  = 0x730b00;
+  ppu->palette[7]  = 0x522800;
+  ppu->palette[8]  = 0x244400;
+  ppu->palette[9]  = 0x005700;
+  ppu->palette[10] = 0x005c00;
+  ppu->palette[11] = 0x005324;
+  ppu->palette[12] = 0x003c76;
   ppu->palette[13] = 0x000000;
   ppu->palette[14] = 0x000000;
   ppu->palette[15] = 0x000000;
-  ppu->palette[16] = 0xBCBCBC;
-  ppu->palette[17] = 0x0078F8;
-  ppu->palette[18] = 0x0058F8;
-  ppu->palette[19] = 0x6844FC;
-  ppu->palette[20] = 0xD800CC;
-  ppu->palette[21] = 0xE40058;
-  ppu->palette[22] = 0xF83800;
-  ppu->palette[23] = 0xE45C10;
-  ppu->palette[24] = 0xAC7C00;
-  ppu->palette[25] = 0x00B800;
-  ppu->palette[26] = 0x00A800;
-  ppu->palette[27] = 0x00A844;
-  ppu->palette[28] = 0x008888;
+  
+  ppu->palette[16] = 0xababab;
+  ppu->palette[17] = 0x0d57ff;
+  ppu->palette[18] = 0x4b30ff;
+  ppu->palette[19] = 0x8a13ff;
+  ppu->palette[20] = 0xbc08d6;
+  ppu->palette[21] = 0xd21269;
+  ppu->palette[22] = 0xc72e00;
+  ppu->palette[23] = 0x9d5400;
+  ppu->palette[24] = 0x607b00;
+  ppu->palette[25] = 0x209800;
+  ppu->palette[26] = 0x00a300;
+  ppu->palette[27] = 0x009942;
+  ppu->palette[28] = 0x007db4;
   ppu->palette[29] = 0x000000;
   ppu->palette[30] = 0x000000;
   ppu->palette[31] = 0x000000;
-  ppu->palette[32] = 0xF8F8F8;
-  ppu->palette[33] = 0x3CBCFC;
-  ppu->palette[34] = 0x6888FC;
-  ppu->palette[35] = 0x9878F8;
-  ppu->palette[36] = 0xF878F8;
-  ppu->palette[37] = 0xF85898;
-  ppu->palette[38] = 0xF87858;
-  ppu->palette[39] = 0xFCA044;
-  ppu->palette[40] = 0xF8B800;
-  ppu->palette[41] = 0xB8F818;
-  ppu->palette[42] = 0x58D854;
-  ppu->palette[43] = 0x58F898;
-  ppu->palette[44] = 0x00E8D8;
-  ppu->palette[45] = 0x787878;
+  
+  ppu->palette[32] = 0xffffff;
+  ppu->palette[33] = 0x53aeff;
+  ppu->palette[34] = 0x9085ff;
+  ppu->palette[35] = 0xd365ff;
+  ppu->palette[36] = 0xff57ff;
+  ppu->palette[37] = 0xff5dcf;
+  ppu->palette[38] = 0xff7757;
+  ppu->palette[39] = 0xfa9e00;
+  ppu->palette[40] = 0xbdc700;
+  ppu->palette[41] = 0x7ae700;
+  ppu->palette[42] = 0x43f611;
+  ppu->palette[43] = 0x26ef7e;
+  ppu->palette[44] = 0x2cd5f6;
+  ppu->palette[45] = 0x4e4e4e;
   ppu->palette[46] = 0x000000;
   ppu->palette[47] = 0x000000;
-  ppu->palette[48] = 0xFCFCFC;
-  ppu->palette[49] = 0xA4E4FC;
-  ppu->palette[50] = 0xB8B8F8;
-  ppu->palette[51] = 0xD8B8F8;
-  ppu->palette[52] = 0xF8B8F8;
-  ppu->palette[53] = 0xF8A4C0;
-  ppu->palette[54] = 0xF0D0B0;
-  ppu->palette[55] = 0xFCE0A8;
-  ppu->palette[56] = 0xF8D878;
-  ppu->palette[57] = 0xD8F878;
-  ppu->palette[58] = 0xB8F8B8;
-  ppu->palette[59] = 0xB8F8D8;
-  ppu->palette[60] = 0x00FCFC;
-  ppu->palette[61] = 0xF8D8F8;
+  
+  ppu->palette[48] = 0xffffff;
+  ppu->palette[49] = 0xb6e1ff;
+  ppu->palette[50] = 0xced1ff;
+  ppu->palette[51] = 0xe9c3ff;
+  ppu->palette[52] = 0xffbcff;
+  ppu->palette[53] = 0xffbdf4;
+  ppu->palette[54] = 0xffc6c3;
+  ppu->palette[55] = 0xffd59a;
+  ppu->palette[56] = 0xe9e681;
+  ppu->palette[57] = 0xcef481;
+  ppu->palette[58] = 0xb6fb9a;
+  ppu->palette[59] = 0xa9fac3;
+  ppu->palette[60] = 0xa9f0f4;
+  ppu->palette[61] = 0xb8b8b8;
   ppu->palette[62] = 0x000000;
   ppu->palette[63] = 0x000000;
-
+  
 
 
 }
+
 
 
 // drawFramebuffer()
@@ -307,8 +317,6 @@ int spriteEvaluation(PPU* ppu, uint8_t* oamIndices, int eightSixteenSpriteFlag){
 //     ppu - ppu to render a scanline with 
 //
 
-
-
 void renderScanline(PPU* ppu){
   uint8_t currentIndiceBitPlane1;
   uint8_t currentIndiceBitPlane2;
@@ -340,7 +348,7 @@ void renderScanline(PPU* ppu){
   uint16_t spritePatternTableIndice;
   uint8_t oamIndices[8];
   uint8_t tempPalette[4]; 
-  uint16_t tempV2;
+  uint16_t tempV;
 
   if(getBit(ppu->ctrl, 4) == 0){
     patternTableOffset = 0;
@@ -374,17 +382,18 @@ void renderScanline(PPU* ppu){
 
       // every tile, fetch the two bitplanes from the patterntable two tiles ahead, to keep the buffer filled
       if(i != 0 && i % 8 == 0){ 
-        fillTempV(&tempV2, ppu->vregister2);
+        fillTempV(&tempV, ppu->vregister.vcomp);
+        //printf("vreg %x \n", tempV + 0x2000);
+        patternTableIndice = readPpuBus(ppu, 0x2000 + tempV);
 
-        patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
         // fetch lsb and msb bitplanes and fill shift register buffers
-        ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY);
-        ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8);
+        ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister.vcomp.fineY);
+        ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, patternTableOffset + (patternTableIndice << 4) + ppu->vregister.vcomp.fineY + 8);
 
-        attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV2 & 0x0c00) | ((tempV2 >> 4) & 0x38) | ((tempV2 >> 2) & 0x07));
+        attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV & 0x0c00) | ((tempV >> 4) & 0x38) | ((tempV >> 2) & 0x07));
 
         // finds which quadrant V resides in and returns the appropriate 2-bit number from the byte
-        attributeTableByte = findAndReturnAttributeByte(tempV2, attributeTableByte);
+        attributeTableByte = findAndReturnAttributeByte(tempV, attributeTableByte);
 
         // copies it 8 times into the attribute table buffer (shift register)
         for(int k = 0; k < 8; ++k){
@@ -491,8 +500,6 @@ void renderScanline(PPU* ppu){
 
           // if the sprite is vertically mirrored or not
           if(getBit(ppu->oam[oamIndices[j] + 2], 7) == 0){ 
-            
-            
             if((ppu->scanLine - ppu->oam[oamIndices[j]]) <= 7){
               bitPlane1 = readPpuBus(ppu, (spritePatternTableOffset + (((((uint16_t) ppu->oam[oamIndices[j] + 1]) & 0xfe) >> 0) << 4) + ppu->scanLine - ppu->oam[oamIndices[j]]));
               bitPlane2 = readPpuBus(ppu, (spritePatternTableOffset + (((((uint16_t) ppu->oam[oamIndices[j] + 1]) & 0xfe) >> 0) << 4) + (ppu->scanLine - ppu->oam[oamIndices[j]]) + 8));    
@@ -552,7 +559,7 @@ void renderScanline(PPU* ppu){
           }
 
          // sprite zero hit detection
-          if(oamIndices[j] == 0 && bitsCombinedBackground != 0 && getBit(ppu->mask, 3) != 0 && getBit(ppu->status, 6) == 0 && i != 255){
+          if(oamIndices[j] == 0 && bitsCombinedBackground != 0 && getBit(ppu->mask, 4) != 0 && getBit(ppu->status, 6) == 0 && i != 255){
             ppu->status = setBit(ppu->status, 6);
           }
         }
@@ -571,33 +578,32 @@ void renderScanline(PPU* ppu){
   }
 
   // hori(v) = hori(t)
-  ppu->vregister2.courseX = ppu->tregister.courseX;
-  ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) | getBit(ppu->tregister.nameTableSelect, 0);
-
+  ppu->vregister.vcomp.courseX = ppu->tregister.vcomp.courseX;
+  ppu->vregister.vcomp.nameTableSelect = getBit(ppu->vregister.vcomp.nameTableSelect, 1) | getBit(ppu->tregister.vcomp.nameTableSelect, 0);
 
   incrementY(ppu);
   
   // gets shift registers ready for next scanline; fetches the first two tiles of the next line
-  fetchFirstTwoTiles(ppu, patternTableOffset);
+  fetchFirstTwoTiles(ppu);
  
  
 }
 
 
 void incrementY(PPU* ppu){
-  if(ppu->vregister2.fineY < 7){
-    ppu->vregister2.fineY++;
+  if(ppu->vregister.vcomp.fineY < 7){
+    ppu->vregister.vcomp.fineY++;
   } else {
-    ppu->vregister2.fineY = 0;
-    if(ppu->vregister2.courseY == 29){
-      ppu->vregister2.courseY = 0;
-      ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) ^ 0b10 | getBit(ppu->vregister2.nameTableSelect, 0);
+    ppu->vregister.vcomp.fineY = 0;
+    if(ppu->vregister.vcomp.courseY == 29){
+      ppu->vregister.vcomp.courseY = 0;
+      ppu->vregister.vcomp.nameTableSelect = getBit(ppu->vregister.vcomp.nameTableSelect, 1) ^ 0b10 | getBit(ppu->vregister.vcomp.nameTableSelect, 0);
   
-    } else if(ppu->vregister2.courseY == 31){
-      ppu->vregister2.courseY = 0;
+    } else if(ppu->vregister.vcomp.courseY == 31){
+      ppu->vregister.vcomp.courseY = 0;
 
     } else {
-      ppu->vregister2.courseY++;
+      ppu->vregister.vcomp.courseY++;
 
     }
 
@@ -614,23 +620,23 @@ void incrementY(PPU* ppu){
 //    tempV2 - unsigned integer to fill
 //  input:
 //    vreg - a struct VComponent to source the data from 
-void fillTempV(uint16_t *tempV, struct VComponent vreg){
+void fillTempV(uint16_t *tempV, struct VComponent vcomp){
     *tempV = 0;
-    *tempV = vreg.courseX;
-    *tempV = *tempV | (((uint16_t)vreg.courseY) << 5);
-    *tempV = *tempV | (((uint32_t) vreg.nameTableSelect) << 10);
+    *tempV = vcomp.courseX;
+    *tempV = *tempV | (((uint16_t)vcomp.courseY) << 5);
+    *tempV = *tempV | (((uint32_t) vcomp.nameTableSelect) << 10);
 }
 
 
 
 void incrementCourseX(PPU* ppu){
 
-    if(ppu->vregister2.courseX == 31){
-      ppu->vregister2.courseX = 0;
-      ppu->vregister2.nameTableSelect = getBit(ppu->vregister2.nameTableSelect, 1) | (getBit(ppu->vregister2.nameTableSelect, 0) ^ 0b01);
+    if(ppu->vregister.vcomp.courseX == 31){
+      ppu->vregister.vcomp.courseX = 0;
+      ppu->vregister.vcomp.nameTableSelect = getBit(ppu->vregister.vcomp.nameTableSelect, 1) | (getBit(ppu->vregister.vcomp.nameTableSelect, 0) ^ 0b01);
 
     } else {
-      ppu->vregister2.courseX++;
+      ppu->vregister.vcomp.courseX++;
     }
 
 }
@@ -654,24 +660,30 @@ void allocateNewFrameBuffer(PPU* ppu){
 
 }
 
-void fetchFirstTwoTiles(PPU* ppu, uint16_t patternTableOffset){
+void fetchFirstTwoTiles(PPU* ppu){
 
   
   uint16_t patternTableIndice;
-  uint16_t tempV2;
+  uint16_t tempV;
   uint8_t attributeTableByte;
+  uint16_t patternTableOffset;
 
-  fillTempV(&tempV2, ppu->vregister2);
-  
+  if(getBit(ppu->ctrl, 4) == 0){
+    patternTableOffset = 0;
+  } else if (getBit(ppu->ctrl, 4) != 0){
+    patternTableOffset = 0x1000;
+  }
 
+
+  fillTempV(&tempV, ppu->vregister.vcomp);
 
   // fetch nametable
-  patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
+  patternTableIndice = readPpuBus(ppu, 0x2000 + tempV);
 
 
   // fetch attribute table byte 
-  attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV2 & 0x0c00) | ((tempV2 >> 4) & 0x38) | ((tempV2 >> 2) & 0x07));
-  attributeTableByte = findAndReturnAttributeByte(tempV2, attributeTableByte);
+  attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV & 0x0c00) | ((tempV >> 4) & 0x38) | ((tempV >> 2) & 0x07));
+  attributeTableByte = findAndReturnAttributeByte(tempV, attributeTableByte);
 
   // copies attributetablebyte to 8 positions in attributeData1 and 2
   for(int j = 0; j < 8; ++j){
@@ -692,21 +704,23 @@ void fetchFirstTwoTiles(PPU* ppu, uint16_t patternTableOffset){
   ppu->attributeData2 = ppu->attributeData2 << 8;
 
     // fetch low and high bitplanes of patterntable
-  ppu->bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
+  ppu->bitPlane1 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister.vcomp.fineY));
   ppu->bitPlane1 = ppu->bitPlane1 << 8;
 
-  ppu->bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8));
+  ppu->bitPlane2 = readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister.vcomp.fineY + 8));
   ppu->bitPlane2 = ppu->bitPlane2 << 8;
 
   incrementCourseX(ppu);
-  fillTempV(&tempV2, ppu->vregister2);
 
+
+
+  fillTempV(&tempV, ppu->vregister.vcomp);
     // fetch pattern table ID
-  patternTableIndice = readPpuBus(ppu, 0x2000 + tempV2);
+  patternTableIndice = readPpuBus(ppu, 0x2000 + tempV);
 
     // fetch attribute table byte
-  attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV2 & 0x0c00) | ((tempV2 >> 4) & 0x38) | ((tempV2 >> 2) & 0x07));
-  attributeTableByte = findAndReturnAttributeByte(tempV2, attributeTableByte);
+  attributeTableByte = readPpuBus(ppu, 0x23c0 | (tempV & 0x0c00) | ((tempV >> 4) & 0x38) | ((tempV >> 2) & 0x07));
+  attributeTableByte = findAndReturnAttributeByte(tempV, attributeTableByte);
   for(int j = 0; j < 8; ++j){
     if(getBit(attributeTableByte, 0) == 1){
       ppu->attributeData1 = setBit16bit(ppu->attributeData1, j);
@@ -724,8 +738,8 @@ void fetchFirstTwoTiles(PPU* ppu, uint16_t patternTableOffset){
 
 
     // fetch low and high bitplanes of patterntable
-  ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY));
-  ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister2.fineY + 8));
+  ppu->bitPlane1 = ppu->bitPlane1 | readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister.vcomp.fineY));
+  ppu->bitPlane2 = ppu->bitPlane2 | readPpuBus(ppu, (patternTableOffset + (patternTableIndice << 4) + ppu->vregister.vcomp.fineY + 8));
 
 
    
@@ -781,25 +795,19 @@ void prerenderScanline(Bus* bus){
 
   // hori(v) = hori(t)
   // copy all x components from t to v
-  bus->ppu->vregister2.courseX = bus->ppu->tregister.courseX;
-  bus->ppu->vregister2.nameTableSelect = (bus->ppu->tregister.nameTableSelect & 0b1);
+  bus->ppu->vregister.vcomp.courseX = bus->ppu->tregister.vcomp.courseX;
+  bus->ppu->vregister.vcomp.nameTableSelect = (bus->ppu->tregister.vcomp.nameTableSelect & 0b1);
   
 
   // vert(v) = vert(t)
   // copy all y components from t to v
-  bus->ppu->vregister2.courseY = bus->ppu->tregister.courseY;
-  bus->ppu->vregister2.fineY = bus->ppu->tregister.fineY;
-  bus->ppu->vregister2.nameTableSelect = getBit(bus->ppu->vregister2.nameTableSelect, 0) | getBit(bus->ppu->tregister.nameTableSelect, 1);
+  bus->ppu->vregister.vcomp.courseY = bus->ppu->tregister.vcomp.courseY;
+  bus->ppu->vregister.vcomp.fineY = bus->ppu->tregister.vcomp.fineY;
+  bus->ppu->vregister.vcomp.nameTableSelect = getBit(bus->ppu->vregister.vcomp.nameTableSelect, 0) | getBit(bus->ppu->tregister.vcomp.nameTableSelect, 1);
 
-
-  uint16_t patternTableOffset;
-  if(getBit(bus->ppu->ctrl, 4) == 0){
-    patternTableOffset = 0;
-  } else if (getBit(bus->ppu->ctrl, 4) != 0){
-    patternTableOffset = 0x1000;
-  }
   
-  fetchFirstTwoTiles(bus->ppu, patternTableOffset);
+  fetchFirstTwoTiles(bus->ppu);
+
   bus->ppu->prerenderScanlineFlag = 0;
   bus->ppu->scanLine = 0;
 
