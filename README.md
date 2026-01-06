@@ -38,7 +38,6 @@ Currently a work in progress.
 
 ## Screenshots
 
-![Donkey Kong](https://i.imgur.com/anXIS6H.png)
-![Bomberman](https://i.imgur.com/mExS8PW.png)
+![Super Mario Bros](https://i.imgur.com/ehnudBK.png)
+![Bomberman](https://i.imgur.com/pR5fjyt.png)
 
->

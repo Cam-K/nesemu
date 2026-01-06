@@ -793,9 +793,10 @@ void vblankEnd(Bus* bus){
 
 void prerenderScanline(Bus* bus){
 
-  // hori(v) = hori(t)
-  // copy all x components from t to v
+  // if rendering is enabled
   if(getBit(bus->ppu->mask, 3) != 0){
+    // hori(v) = hori(t)
+    // copy all x components from t to v
     bus->ppu->vregister.vcomp.courseX = bus->ppu->tregister.vcomp.courseX;
     bus->ppu->vregister.vcomp.nameTableSelect = (bus->ppu->tregister.vcomp.nameTableSelect & 0b1);
   
