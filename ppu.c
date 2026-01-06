@@ -44,8 +44,10 @@ void initPpu(PPU* ppu){
 
   printf("initializing PPU \n");
   ppu->frameBuffer = malloc(sizeof(uint32_t*) * 242);
+  
   for(int i = 0; i < 242; ++i){
-    ppu->frameBuffer[i] = malloc(sizeof(uint32_t) * WINDOW_WIDTH);
+    //ppu->frameBuffer[i] = malloc(sizeof(uint32_t) * WINDOW_WIDTH);
+    ppu->frameBuffer[i] = calloc(WINDOW_WIDTH, sizeof(uint32_t));
   } 
 
   
@@ -370,7 +372,7 @@ void renderScanline(PPU* ppu){
 
 
 
-    // if sprite rendering is enabled
+    // if background rendering is enabled
     if(getBit(ppu->mask, 3) == 0b1000){
 
       // every tile, fetch the two bitplanes from the patterntable two tiles ahead, to keep the buffer filled
@@ -452,7 +454,7 @@ void renderScanline(PPU* ppu){
     // this is kept for later when checking for a sprite zero hit
       bitsCombinedBackground = bitsCombined;
     } else if(getBit(ppu->mask, 3) == 0){
-      ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[tempPalette[0]];
+      ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[63];
     }
 
 
@@ -572,15 +574,17 @@ void renderScanline(PPU* ppu){
   
   }
 
-  // hori(v) = hori(t)
-  ppu->vregister.vcomp.courseX = ppu->tregister.vcomp.courseX;
-  ppu->vregister.vcomp.nameTableSelect = getBit(ppu->vregister.vcomp.nameTableSelect, 1) | getBit(ppu->tregister.vcomp.nameTableSelect, 0);
+  // if background rendering is enabled, increment v
+  if(getBit(ppu->mask, 3) != 0){
+    // hori(v) = hori(t)
+    ppu->vregister.vcomp.courseX = ppu->tregister.vcomp.courseX;
+    ppu->vregister.vcomp.nameTableSelect = getBit(ppu->vregister.vcomp.nameTableSelect, 1) | getBit(ppu->tregister.vcomp.nameTableSelect, 0);
 
-  incrementY(ppu);
+    incrementY(ppu);
   
-  // gets shift registers ready for next scanline; fetches the first two tiles of the next line
-  fetchFirstTwoTiles(ppu);
- 
+    // gets shift registers ready for next scanline; fetches the first two tiles of the next line
+    fetchFirstTwoTiles(ppu);
+  }
  
 }
 

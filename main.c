@@ -584,7 +584,7 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
         } else if(bus->cpu->cycles >= CPU_CYCLES_PER_SCANLINE){
 
           // render a scanline except while in vblank and during the prerender scanline (261)
-          if(getBit(bus->ppu->mask, 3) != 0 && getBit(bus->ppu->mask, 4) != 0 && bus->ppu->vblank == 0 && bus->ppu->prerenderScanlineFlag == 0){
+          if(bus->ppu->vblank == 0 && bus->ppu->prerenderScanlineFlag == 0){
             renderScanline(bus->ppu);
           }
             bus->cpu->cycles = 0;
