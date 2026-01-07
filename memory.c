@@ -300,10 +300,11 @@ uint8_t readBus(Bus* bus, uint16_t addr){
       case 0x2001:
         return 0;
       case 0x2002:
+        temp = bus->ppu->status;
         //printf("Reading status \n");
         //bus->ppu->status = clearBit(bus->ppu->status, 7);
         bus->ppu->wregister = 0;
-        return bus->ppu->status;
+        return temp;
       case 0x2003:
         return 0;
       case 0x2004:

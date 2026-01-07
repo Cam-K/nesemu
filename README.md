@@ -1,8 +1,8 @@
 # nesemu
-A Nintendo Entertainment System emulator, written in C and SDL2.
+A Nintendo Entertainment System emulator, written in C.
 
 Only compatible with mapper 0 games at the moment.
-Able to boot games such as Balloon Fight and Donkey Kong.
+Able to boot games such as Balloon Fight and Super Mario Bros.
 
 Features a CPU tester to check the core against the Tom Harte processor routines, with the appropriate JSON data.
 

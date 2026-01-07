@@ -156,7 +156,7 @@ int main(int argc, char* argv[]){
   uint8_t* fileBuffer;
 
   FILE* fptr;
-  printf("    nesemu  Copyright (C) 2026  Cameron Kelly \n This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'. \n This is free software, and you are welcome to redistribute it \n under certain conditions; type `show c' for details.");
+  printf("    nesemu  Copyright (C) 2026  Cameron Kelly \n This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'. \n This is free software, and you are welcome to redistribute it \n under certain conditions; type `show c' for details. \n");
 
   // parsing command line arguments
   if(argc > 1){
@@ -419,7 +419,6 @@ void interpreter(Bus* bus){
 
 }
 
-// TODO: setup and start NES emulator
 void startNes(char* romPath, int screenScaling){
   printf("Starting NES emulator \n");
 
@@ -595,6 +594,7 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
           }
             bus->cpu->cycles = 0;
             bus->ppu->scanLine++;
+            bus->ppu->scanLineSprites++;
 
             //printf("Scanline %d \n", bus.ppu->scanLine);
             if(bus->ppu->scanLine == 240){
@@ -694,7 +694,7 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
                 }
               }
           }
-}
+  }
 }
 
 

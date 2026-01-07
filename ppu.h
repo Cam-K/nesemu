@@ -81,6 +81,10 @@ typedef struct _PPU {
   
   int scanLine;
 
+  // separate scanline variable for sprites because sprites are delayed by one scanline
+  int scanLineSprites;
+
+
   // flag is set when the ppu is rendering the prerender scanline (scanline 261)
   int prerenderScanlineFlag;
 
