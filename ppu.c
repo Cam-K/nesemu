@@ -287,14 +287,14 @@ int spriteEvaluation(PPU* ppu, uint8_t* oamIndices, int eightSixteenSpriteFlag){
       }
     }
 
-    if(spriteEvalCounter >= 7){
-      if(spriteEvalCounter == 7){
+    if(spriteEvalCounter >= 8){
+      if(spriteEvalCounter == 8){
         continue;
       }
 
-      if(spriteEvalCounter >= 8){
+      if(spriteEvalCounter >= 9){
         ppu->status = setBit(ppu->status, 5);
-        spriteEvalCounter = 7;
+        spriteEvalCounter = 8;
       }
       break;
     }
@@ -341,7 +341,7 @@ void renderScanline(PPU* ppu){
   int eightSixteenSpriteFlag;
   uint16_t spritePatternTableOffset;
   uint16_t spritePatternTableIndice;
-  uint8_t oamIndices[8];
+  uint8_t oamIndices[9];
   uint8_t tempPalette[4]; 
   uint16_t tempV;
 
@@ -455,7 +455,7 @@ void renderScanline(PPU* ppu){
       bitsCombinedBackground = bitsCombined;
     } else if(getBit(ppu->mask, 3) == 0){
       bitsCombinedBackground = 0;
-      ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[63];
+      ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[readPpuBus(ppu, 0x3f00 + 0)];
     }
 
 

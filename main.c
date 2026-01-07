@@ -537,11 +537,7 @@ void startNes(char* romPath, int screenScaling){
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     printf("SDL initialized! \n");
-      // main loop
-      // decodes and executes 1 scanline worth of instructions, then instructs ppu to render the scanline
-      // once a 240 scanlines have been rendered, draw framebuffer to SDL and enable a vblank
-      
-      
+  
       bus.ppu->mirroring = mirroring;
       nesMainLoop(&bus, renderer, texture);
       break;
@@ -564,19 +560,29 @@ void startNes(char* romPath, int screenScaling){
 }
 
 // nesMainLoop()
-// decodes and executes 1 scanline worth of instructions, then instructs ppu to render the scanline
-// once a 240 scanlines have been rendered, draw framebuffer to SDL and enable a vblank
+//   decodes and executes 1 scanline worth of instructions, then instructs ppu to render the scanline
+//   once a 240 scanlines have been rendered, draw framebuffer to SDL and enable a vblank
 void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
       uint8_t oppCode;
       int mirroring = bus->ppu->mirroring;
       SDL_Event event;
+      uint64_t freq = SDL_GetPerformanceFrequency();
+      uint64_t last = SDL_GetPerformanceCounter();
+      uint64_t frame_start;
+      uint64_t frame_end;
+      double elasped_ms;
       int sdlFrames = 0;
       int fps_lastTime = SDL_GetTicks();
       int fps_current = 0;
+      const double target_fps = 60.0;
+      const double target_frame_time = 1000.0 / target_fps;
 
 
 
       while(1){
+       if(bus->ppu->scanLine == 0){
+        frame_start = SDL_GetPerformanceCounter();
+       }
         if(bus->cpu->cycles < CPU_CYCLES_PER_SCANLINE){
           oppCode = readBus(bus, bus->cpu->pc);
           bus->cpu->cycles += decodeAndExecute(bus->cpu, bus, oppCode);
@@ -594,10 +600,11 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
             if(bus->ppu->scanLine == 240){
               // Mirroring hack because bus.ppu->mirroring gets set with 0 despite us setting it to 1 for some reason
               bus->ppu->mirroring = mirroring; 
-
               vblankStart(bus);
               drawFrameBuffer(bus->ppu, renderer, texture);
+ 
               sdlFrames++;
+              
               if(fps_lastTime < SDL_GetTicks() - 1000){
                 fps_lastTime = SDL_GetTicks();
                 fps_current = sdlFrames;
@@ -612,78 +619,81 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
 
             } else if(bus->ppu->scanLine == 261){
               prerenderScanline(bus);
-
-            }
-
-        }
-
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-              case SDL_QUIT:
-                SDL_Quit(); 
-                freeAndExit(bus);
-                break;
-              
-              case SDL_KEYDOWN:
-                switch(event.key.keysym.sym){
-                  case SDLK_x:
-                    bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 0);
-                    break;
-                  case SDLK_z:
-                    bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 1);
-                    break;
-                  case SDLK_RSHIFT:
-                    bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 2);
-                    break;
-                  case SDLK_RETURN:
-                    bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 3);
-                    break;
-                  case SDLK_UP:
-                    bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 4);
-                    break;
-                  case SDLK_DOWN:
-                    bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 5);
-                    break;
-                  case SDLK_LEFT:
-                    bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 6);
-                    break;
-                  case SDLK_RIGHT:
-                    bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 7);
-                    break;
-
-                }
-                break;
-              case SDL_KEYUP:
-                switch(event.key.keysym.sym){
-                  case SDLK_x:
-                    bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 0);
-                    break;
-                  case SDLK_z:
-                    bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 1);
-                    break;
-                  case SDLK_RSHIFT:
-                    bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 2);
-                    break;
-                  case SDLK_RETURN:
-                    bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 3);
-                    break;
-                  case SDLK_UP:
-                    bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 4);
-                    break;
-                  case SDLK_DOWN:
-                    bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 5);
-                    break;
-                  case SDLK_LEFT:
-                    bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 6);
-                    break;
-                  case SDLK_RIGHT:
-                    bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 7);
-                    break;
-                }
+              frame_end = SDL_GetPerformanceCounter();
+              elasped_ms = (frame_end - frame_start) * 1000.0 / freq;
+              if(elasped_ms < target_frame_time){
+                SDL_Delay((uint32_t)(target_frame_time - elasped_ms));
               }
             }
+        }
+    
+        if(bus->ppu->scanLine == 0){
+          while (SDL_PollEvent(&event)) {
+              switch (event.type) {
+                case SDL_QUIT:
+                  SDL_Quit(); 
+                  freeAndExit(bus);
+                  break;
+              
+                case SDL_KEYDOWN:
+                  switch(event.key.keysym.sym){
+                    case SDLK_x:
+                      bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 0);
+                      break;
+                    case SDLK_z:
+                      bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 1);
+                      break;
+                    case SDLK_RSHIFT:
+                      bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 2);
+                      break;
+                    case SDLK_RETURN:
+                      bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 3);
+                      break;
+                    case SDLK_UP:
+                      bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 4);
+                      break;
+                    case SDLK_DOWN:
+                      bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 5);
+                      break;
+                    case SDLK_LEFT:
+                      bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 6);
+                      break;
+                    case SDLK_RIGHT:
+                      bus->controller1.sdlButtons = setBit(bus->controller1.sdlButtons, 7);
+                      break;
 
-
+                  }
+                  break;
+                case SDL_KEYUP:
+                  switch(event.key.keysym.sym){
+                    case SDLK_x:
+                      bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 0);
+                      break;
+                    case SDLK_z:
+                      bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 1);
+                      break;
+                    case SDLK_RSHIFT:
+                      bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 2);
+                      break;
+                    case SDLK_RETURN:
+                      bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 3);
+                      break;
+                    case SDLK_UP:
+                      bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 4);
+                      break;
+                    case SDLK_DOWN:
+                      bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 5);
+                      break;
+                    case SDLK_LEFT:
+                      bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 6);
+                      break;
+                    case SDLK_RIGHT:
+                      bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 7);
+                      break;
+                  }
+                }
+              }
+          }
 }
 }
 
