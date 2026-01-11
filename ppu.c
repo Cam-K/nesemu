@@ -37,7 +37,7 @@
 //   initializes PPU
 void initPpu(PPU* ppu){
 
-  ppu->chrrom = malloc(sizeof(uint8_t) * 8192);
+  ppu->chrrom = calloc(8192, sizeof(uint8_t));
   ppu->oam = malloc(sizeof(uint8_t) * 64 * 4);
   ppu->paletteram = calloc(32, sizeof(uint8_t));
   ppu->vram = calloc(0x1400, sizeof(uint8_t));
@@ -102,7 +102,7 @@ void resetPpu(PPU* ppu, int powerFlag){
 
   ppu->prerenderScanlineFlag = 0;
 
-
+  ppu->flagChrRam = 0;
   
   
 
@@ -365,6 +365,8 @@ void renderScanline(PPU* ppu){
   // Sprite Evaluation
   //   Does a linear search through the oam, find 8 sprites on the current scanline that are going to be drawn and
   //   stores the found oam indices into an array
+  //   Sprite evalution does not occur on scanline 0, so we start the sprite scanline at -1 and increment from here.
+  //   (no sprites if scanlinesprites == -1)
   if(ppu->scanLineSprites > -1){
     spriteEvalCounter = spriteEvaluation(ppu, oamIndices, eightSixteenSpriteFlag);
   }
@@ -378,7 +380,7 @@ void renderScanline(PPU* ppu){
     // if background rendering is enabled
     if(getBit(ppu->mask, 3) == 0b1000){
 
-      // every tile, fetch the two bitplanes from the patterntable two tiles ahead, to keep the buffer filled
+      // every tile, fetch the bitplanes from the nametable a tile ahead, to keep the buffer filled
       if(i != 0 && i % 8 == 0){ 
         fillTempV(&tempV, ppu->vregister.vcomp);
         
@@ -456,6 +458,8 @@ void renderScanline(PPU* ppu){
 
     // this is kept for later when checking for a sprite zero hit
       bitsCombinedBackground = bitsCombined;
+
+      
     } else if(getBit(ppu->mask, 3) == 0){
       bitsCombinedBackground = 0;
       ppu->frameBuffer[ppu->scanLine][i] = ppu->palette[readPpuBus(ppu, 0x3f00 + 0)];
@@ -601,6 +605,8 @@ void incrementY(PPU* ppu){
     ppu->vregister.vcomp.fineY = 0;
     if(ppu->vregister.vcomp.courseY == 29){
       ppu->vregister.vcomp.courseY = 0;
+
+      // toggle Y nametable select bit
       ppu->vregister.vcomp.nameTableSelect = getBit(ppu->vregister.vcomp.nameTableSelect, 1) ^ 0b10 | getBit(ppu->vregister.vcomp.nameTableSelect, 0);
   
     } else if(ppu->vregister.vcomp.courseY == 31){
@@ -634,6 +640,7 @@ void fillTempV(uint16_t *tempV, struct VComponent vcomp){
 
 
 void incrementCourseX(PPU* ppu){
+  
     if(ppu->vregister.vcomp.courseX == 31){
       ppu->vregister.vcomp.courseX = 0;
       ppu->vregister.vcomp.nameTableSelect = getBit(ppu->vregister.vcomp.nameTableSelect, 1) | (getBit(ppu->vregister.vcomp.nameTableSelect, 0) ^ 0b01);
@@ -782,7 +789,6 @@ void vblankEnd(Bus* bus){
   bus->ppu->status = clearBit(bus->ppu->status, 6);
 
   // clears sprite overflow flag
-  bus->ppu->status = clearBit(bus->ppu->status, 5);
   bus->ppu->prerenderScanlineFlag = 1;
 
 
@@ -810,6 +816,8 @@ void prerenderScanline(Bus* bus){
     fetchFirstTwoTiles(bus->ppu);
   }
   bus->ppu->status = clearBit(bus->ppu->status, 7);
+  bus->ppu->status = clearBit(bus->ppu->status, 5);
+
 
   bus->ppu->prerenderScanlineFlag = 0;
   bus->ppu->scanLine = 0;
@@ -839,12 +847,12 @@ void prerenderScanline(Bus* bus){
 
  */
 
-uint8_t findAndReturnAttributeByte(uint16_t tempV2, uint8_t attributeTableByte){
+uint8_t findAndReturnAttributeByte(uint16_t tempV, uint8_t attributeTableByte){
 
   int quadrant;
 
-  uint8_t courseX = tempV2 & 0x1f;
-  uint8_t courseY = ((tempV2 & 0x3e0) >> 5);
+  uint8_t courseX = tempV & 0x1f;
+  uint8_t courseY = ((tempV & 0x3e0) >> 5);
 
   if((courseX & 0b10) == 0){
     if((courseY & 0b10) == 0){
@@ -868,7 +876,7 @@ uint8_t findAndReturnAttributeByte(uint16_t tempV2, uint8_t attributeTableByte){
   
   uint8_t atb = attributeTableByte;
   if(quadrant == 0){
-      atb = atb & 0b11;
+    atb = atb & 0b11;
   } else if (quadrant == 1){
     atb = atb & 0b1100;
     atb = atb >> 2;

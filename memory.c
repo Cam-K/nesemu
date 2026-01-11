@@ -113,6 +113,7 @@ void initBus(Bus* bus, uint16_t banks){
   bus->controller1.sdlButtons = 0x00;
   bus->controller1.latchedButtons = 0x00;
 
+  bus->bankSelect = 0;
 }
 
 #if NESEMU == 0
@@ -236,14 +237,19 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
   }  else {
     
     // NROM mapper (the basic bitch mapper)
-    if(bus->mapper == 0){
-      if(addr >= 0x8000 && addr <= 0xffff){
-        return;
-        //bus->memArr[1].contents[addr - 0x8000] = val;
+    switch(bus->mapper){
+      case 0:
+        if(addr >= 0x8000 && addr <= 0xffff){
+          return;
+        }
+        break;
+      case 2:
+        if(addr >= 0x8000 && addr <= 0xffff){
+          bus->bankSelect = val;
+        }
       }
-      
     }
-  }
+  
 
 };
 
@@ -326,7 +332,6 @@ uint8_t readBus(Bus* bus, uint16_t addr){
         return temp;
     }
   } else if(addr == 0x4016){
-    //printf("reading controller one \n");
     if(bus->controller1.strobed == 0){
       switch(bus->controller1.readCount){
         case 0:
@@ -360,15 +365,23 @@ uint8_t readBus(Bus* bus, uint16_t addr){
       return 0;
     }
   } else if(addr == 0x4017){
-    //printf("reading controller two \n");
     return 0;
   } else {
 
-    // NROM mapper 
-    if(bus->mapper == 0){
-      if(addr >= 0x8000 && addr <= 0xffff){
-        return bus->memArr[1].contents[addr - 0x8000];
-      }
+    switch(bus->mapper){
+      // NROM mapper
+      case 0:
+        if(addr >= 0x8000 && addr <= 0xffff){
+          return bus->memArr[1].contents[addr - 0x8000];
+        }
+        break;
+      case 2:
+        if(addr >= 0x8000 && addr <= 0xbfff){
+          return bus->memArr[bus->bankSelect + 1].contents[addr - 0x8000];
+        } else if(addr >= 0xc000 && addr <= 0xffff){
+          return bus->memArr[bus->numOfBlocks - 1].contents[addr - 0xc000];
+        }
+        
       
     }
   }
@@ -457,7 +470,12 @@ uint8_t readPpuBus(PPU* ppu, uint16_t addr){
 void writePpuBus(PPU* ppu, uint16_t addr, uint8_t val){
   //printf("Writing to PPU address %x with value %x \n", addr, val);
   if(addr >= 0x0000 && addr <= 0x1fff){
-    return;
+    if(ppu->flagChrRam == 1){
+      ppu->chrrom[addr] = val;
+    } else {
+      return;
+    }
+    
   } else if(addr >= 0x2000 && addr <= 0x2fff){
 
 

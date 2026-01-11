@@ -103,7 +103,10 @@ typedef struct _Bus {
   // mapper number
   int mapper;
 
-  // written through port $4016, once written to, 
+  // used for UxROM games
+  uint8_t bankSelect;
+
+
 
 } Bus; 
 

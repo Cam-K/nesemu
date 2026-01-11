@@ -1,6 +1,6 @@
 CC=gcc
 WCC=x86_64-w64-mingw32-gcc-10-posix
-CFLAGS= `sdl2-config --cflags --libs` -lcjson -I.  -g -lm 
+CFLAGS= `sdl2-config --cflags --libs` -lcjson -I.  -g -O1 -lm 
 
 
 all: general.o ppu.o cpu.o memory.o main.o

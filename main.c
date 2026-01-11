@@ -436,7 +436,8 @@ void startNes(char* romPath, int screenScaling){
   int mirroring;
   struct VComponent vcomp;
   uint8_t fineX;
- 
+  int j;
+
   if(screenScaling < 1){
     screenScaling = 1;
   }
@@ -493,6 +494,12 @@ void startNes(char* romPath, int screenScaling){
   for(int i = 0; i < 6; ++i){
     fgetc(romPtr);
   }
+  
+  if(numOfChrRoms == 0){
+    bus.ppu->flagChrRam = 1;
+  } else {
+    bus.ppu->flagChrRam = 0;
+  }
 
   switch(bus.mapper){
 
@@ -501,7 +508,7 @@ void startNes(char* romPath, int screenScaling){
       // Setup NROM mapper and starts the main loop
 
       // sets up address space and dumps rom contents into memory
-      initBus(&bus, numOfPrgRoms);
+      initBus(&bus, numOfPrgRoms + 1);
       initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
       initMemStruct(&(bus.memArr[1]), 0x8000, Rom, TRUE);
 
@@ -528,17 +535,63 @@ void startNes(char* romPath, int screenScaling){
       
       reset(bus.cpu, &bus);
       resetPpu(bus.ppu, 1);
+      if(numOfChrRoms == 0){
+        bus.ppu->flagChrRam = 1;
+      } else {
+        bus.ppu->flagChrRam = 0;
+      }
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-      printf("error initializing SDL: %s\n", SDL_GetError());
-    }
+      if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        printf("error initializing SDL: %s\n", SDL_GetError());
+      }
 
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
-    printf("SDL initialized! \n");
+      SDL_RenderClear(renderer);
+      SDL_RenderPresent(renderer);
+      printf("SDL initialized! \n");
   
       bus.ppu->mirroring = mirroring;
       nesMainLoop(&bus, renderer, texture);
+      break;
+    
+    case 2:
+      printf("numofprgroms %x \n", numOfPrgRoms);
+      initBus(&bus, numOfPrgRoms + 1);
+      initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
+      for(int i = 0; i < numOfPrgRoms; ++i){
+        initMemStruct(&(bus.memArr[i + 1]), 0x4000, Rom, TRUE);
+      }
+
+      initPpu(bus.ppu);
+      populatePalette(bus.ppu);
+
+      for(int i = 0; i < numOfPrgRoms; ++i){
+        for(int j = 0; j < 0x4000; ++j){
+          bus.memArr[i + 1].contents[j] = fgetc(romPtr);
+        }
+      }
+      for(int i = 0; i < (0x2000 * numOfChrRoms); ++i){
+        bus.ppu->chrrom[i] = fgetc(romPtr);
+      }
+      reset(bus.cpu, &bus);
+      resetPpu(bus.ppu, 1);
+
+      if(numOfChrRoms == 0){
+        bus.ppu->flagChrRam = 1;
+      } else {
+        bus.ppu->flagChrRam = 0;
+      }
+
+      if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        printf("error initializing SDL: %s\n", SDL_GetError());
+      }
+
+      SDL_RenderClear(renderer);
+      SDL_RenderPresent(renderer);
+      printf("SDL initialized! \n");
+  
+      bus.ppu->mirroring = mirroring;
+      nesMainLoop(&bus, renderer, texture);
+
       break;
     default:
       printf("mapper is not compatible \nincompatible rom \n");
@@ -579,6 +632,7 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
 
 
       while(1){
+      // mark time at the start of the frame being drawn
        if(bus->ppu->scanLine == 0){
         frame_start = SDL_GetPerformanceCounter();
        }
@@ -592,26 +646,18 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
           if(bus->ppu->vblank == 0 && bus->ppu->prerenderScanlineFlag == 0){
             renderScanline(bus->ppu);
           }
+            // increment scanline
             bus->cpu->cycles = 0;
             bus->ppu->scanLine++;
             bus->ppu->scanLineSprites++;
 
-            //printf("Scanline %d \n", bus.ppu->scanLine);
+            
             if(bus->ppu->scanLine == 240){
               // Mirroring hack because bus.ppu->mirroring gets set with 0 despite us setting it to 1 for some reason
               bus->ppu->mirroring = mirroring; 
               vblankStart(bus);
               drawFrameBuffer(bus->ppu, renderer, texture);
  
-              sdlFrames++;
-              
-              if(fps_lastTime < SDL_GetTicks() - 1000){
-                fps_lastTime = SDL_GetTicks();
-                fps_current = sdlFrames;
-                sdlFrames = 0;
-                printf("fps: %d \n", fps_current);
-
-              }
               
               //printNameTable(bus);
             } else if(bus->ppu->scanLine == 260){
@@ -619,14 +665,28 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
 
             } else if(bus->ppu->scanLine == 261){
               prerenderScanline(bus);
+              
+              // after prerenderscanline, mark the end of the frame, then delay until the next frame is drawn
               frame_end = SDL_GetPerformanceCounter();
               elasped_ms = (frame_end - frame_start) * 1000.0 / freq;
               if(elasped_ms < target_frame_time){
                 SDL_Delay((uint32_t)(target_frame_time - elasped_ms));
               }
+
+              sdlFrames++;
+              if(fps_lastTime < SDL_GetTicks() - 1000){
+                fps_lastTime = SDL_GetTicks();
+                fps_current = sdlFrames;
+                sdlFrames = 0;
+                printf("fps: %d \n", fps_current);
+
+              }
+
             }
         }
-    
+        
+
+        // poll for events at the start of the frame 
         if(bus->ppu->scanLine == 0){
           while (SDL_PollEvent(&event)) {
               switch (event.type) {

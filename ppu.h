@@ -88,9 +88,12 @@ typedef struct _PPU {
   // flag is set when the ppu is rendering the prerender scanline (scanline 261)
   int prerenderScanlineFlag;
 
-  // CHR-ROM cartridge contents
+  // CHR-ROM or RAM cartridge contents
   // 8192 array of bytes 
   uint8_t* chrrom;
+
+  // if chrrom is writeable or not, 1 if it is writeable
+  int flagChrRam;
 
   // should be initialized as [256]
   // used for sprites
