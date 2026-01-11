@@ -39,5 +39,5 @@ Currently a work in progress.
 ## Screenshots
 
 ![Super Mario Bros](https://i.imgur.com/ehnudBK.png)
-![Bomberman](https://i.imgur.com/pR5fjyt.png)
+![Castlevania](https://i.imgur.com/eMoT9Kq.png)
 

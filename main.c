@@ -431,12 +431,8 @@ void startNes(char* romPath, int screenScaling){
   int cycles;
   uint8_t oppCode;
   int scanlines = 0;
-  uint32_t* scanlineBuffer;
   uint8_t tempInt;
   int mirroring;
-  struct VComponent vcomp;
-  uint8_t fineX;
-  int j;
 
   if(screenScaling < 1){
     screenScaling = 1;
