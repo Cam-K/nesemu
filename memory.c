@@ -111,7 +111,13 @@ void initBus(Bus* bus, uint16_t banks){
   bus->controller1.strobed = 0;
   bus->controller1.readCount = 0;
   bus->controller1.sdlButtons = 0x00;
-  bus->controller1.latchedButtons = 0x00;
+
+  bus->controller2.latchedButtons = 0x00;
+  bus->controller2.strobed = 0;
+  bus->controller2.readCount = 0;
+  bus->controller2.sdlButtons = 0x00;
+
+
 
   bus->bankSelect = 0;
 }
@@ -234,7 +240,16 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
 
     return;
     
-  }  else {
+  } else if(addr == 0x4017){
+    if(bus->controller2.strobed == 0 && val == 1){
+      bus->controller2.strobed = 1;
+    } else if(bus->controller2.strobed == 1 && val == 0){
+      bus->controller2.strobed = 0;
+      bus->controller2.latchedButtons = bus->controller2.sdlButtons;
+      bus->controller2.readCount = 0;
+    } 
+
+  } else {
     
     // NROM mapper (the basic bitch mapper)
     switch(bus->mapper){
@@ -246,6 +261,7 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
       case 2:
         if(addr >= 0x8000 && addr <= 0xffff){
           bus->bankSelect = val;
+          bus->bankSelect = bus->bankSelect & 0xf;
         }
       }
     }
@@ -365,7 +381,58 @@ uint8_t readBus(Bus* bus, uint16_t addr){
       return 0;
     }
   } else if(addr == 0x4017){
-    return 0;
+    if(bus->controller2.strobed == 0){
+      switch(bus->controller2.readCount){
+        case 0:
+          bus->controller2.readCount++;
+          temp = getBit(bus->controller2.latchedButtons, 0);
+          break;
+        case 1:
+          bus->controller1.readCount++;
+          temp = getBit(bus->controller2.latchedButtons, 1) >> 1;
+          break;
+        case 2:
+          bus->controller1.readCount++;
+          temp = getBit(bus->controller2.latchedButtons, 2) >> 2;
+          break;
+        case 3:
+          bus->controller1.readCount++;
+          temp = getBit(bus->controller2.latchedButtons, 3) >> 3;
+          break;
+        case 4:
+          bus->controller1.readCount++;
+          temp = getBit(bus->controller2.latchedButtons, 4) >> 4;
+          break;
+        case 5:
+          bus->controller1.readCount++; 
+          temp = getBit(bus->controller2.latchedButtons, 5) >> 5;
+          break;
+        case 6:
+          bus->controller1.readCount++;
+          temp = getBit(bus->controller2.latchedButtons, 6) >> 6;
+          break;
+        case 7:
+          bus->controller1.readCount = 0;
+          temp = getBit(bus->controller2.latchedButtons, 7) >> 7;
+          break;
+        default:
+          return 0;
+      }
+      if(bus->controller2.lightSensor == 0){
+         temp = clearBit(temp, 3);
+      } else if(bus->controller2.lightSensor == 1) {
+         temp = setBit(temp, 3);
+      }
+      if(bus->controller2.triggerPulled == 0){
+         temp = clearBit(temp, 4);
+      } else if(bus->controller2.triggerPulled == 1){
+         temp = setBit(temp, 4);
+      }
+      return temp;
+
+    } else {
+      return 0;
+    }
   } else {
 
     switch(bus->mapper){

@@ -83,6 +83,13 @@ typedef struct _controller {
   uint8_t latchedButtons;
 
 
+  // used for NES Zapper (0 if detected, 1 if not detected)
+  uint8_t lightSensor;
+
+  // 1 if half pulled, 0 if fully released and fully pulled
+  uint8_t triggerPulled;
+
+
   int readCount;
 
 } Controller;

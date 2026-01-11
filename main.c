@@ -111,7 +111,7 @@ struct aft {
 
 TestResults* jsonTesterParallel(char**, Bus*, int, int);
 void startNes(char*, int);
-void nesMainLoop(Bus*, SDL_Renderer*, SDL_Texture*);
+void nesMainLoop(Bus*, SDL_Renderer*, SDL_Texture*, int);
 void freeAndExit(Bus*);
 
 struct tple{
@@ -546,15 +546,15 @@ void startNes(char* romPath, int screenScaling){
       printf("SDL initialized! \n");
   
       bus.ppu->mirroring = mirroring;
-      nesMainLoop(&bus, renderer, texture);
+      nesMainLoop(&bus, renderer, texture, screenScaling);
       break;
     
     case 2:
       printf("numofprgroms %x \n", numOfPrgRoms);
       initBus(&bus, numOfPrgRoms + 1);
       initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
-      for(int i = 0; i < numOfPrgRoms; ++i){
-        initMemStruct(&(bus.memArr[i + 1]), 0x4000, Rom, TRUE);
+      for(int i = 1; i <= numOfPrgRoms + 1; ++i){
+        initMemStruct(&(bus.memArr[i]), 0x4000, Rom, TRUE);
       }
 
       initPpu(bus.ppu);
@@ -586,7 +586,9 @@ void startNes(char* romPath, int screenScaling){
       printf("SDL initialized! \n");
   
       bus.ppu->mirroring = mirroring;
-      nesMainLoop(&bus, renderer, texture);
+
+      // once machine has been setup to the mapper's needs, enter main loop
+      nesMainLoop(&bus, renderer, texture, screenScaling);
 
       break;
     default:
@@ -610,7 +612,7 @@ void startNes(char* romPath, int screenScaling){
 // nesMainLoop()
 //   decodes and executes 1 scanline worth of instructions, then instructs ppu to render the scanline
 //   once a 240 scanlines have been rendered, draw framebuffer to SDL and enable a vblank
-void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
+void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int screenScaling){
       uint8_t oppCode;
       int mirroring = bus->ppu->mirroring;
       SDL_Event event;
@@ -747,6 +749,24 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture){
                       bus->controller1.sdlButtons = clearBit(bus->controller1.sdlButtons, 7);
                       break;
                   }
+                  break;
+                  case SDL_MOUSEBUTTONDOWN:
+              
+                    if(bus->ppu->frameBuffer[event.motion.y / screenScaling][event.motion.x / screenScaling] == 0xffffff){
+                      bus->controller2.lightSensor = 0;
+                      printf("detected! \n");
+    
+                    } else {
+                      bus->controller2.lightSensor = 1;
+                    }
+                    printf("color: %x \n", bus->ppu->frameBuffer[event.motion.y / screenScaling][event.motion.x / screenScaling]);
+                    
+                    bus->controller2.triggerPulled = 1;
+                    break;
+                    
+                  case SDL_MOUSEBUTTONUP:
+                    bus->controller2.triggerPulled = 0;
+                    break;
                 }
               }
           }
