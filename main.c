@@ -245,7 +245,7 @@ int main(int argc, char* argv[]){
     printf("File size is %d bytes \n", fileSize);
     fileBuffer = (uint8_t*)calloc(fileSize, sizeof(uint8_t));
     for(i = 0; i < fileSize; ++i){
-      fread(fileBuffer + i, 8, 1, fptr);   
+      (void)!fread(fileBuffer + i, 8, 1, fptr);   
       if(i == 0 || i == 1)
         printf("%x \n", fileBuffer[i]);
     }
@@ -328,7 +328,7 @@ void interpreter(Bus* bus){
     printf("Loaded Instruction: %x \n", oppCode);
     printf("Program Counter: %x \n", bus->cpu->pc);
     printf(">");
-    fgets(input, MAX_STR, stdin);
+    (void)!fgets(input, MAX_STR, stdin);
 
     if(input[0] == 's'){
       // steps through the cpu program
@@ -439,7 +439,7 @@ void startNes(char* romPath, int screenScaling){
   }
 
   SDL_Event event;
-  SDL_Window* win = SDL_CreateWindow("nesemu", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH * screenScaling, WINDOW_HEIGHT * screenScaling, 0);
+  SDL_Window* win = SDL_CreateWindow("erNES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH * screenScaling, WINDOW_HEIGHT * screenScaling, 0);
   SDL_Renderer *renderer;
   SDL_Texture *texture;
 
@@ -1062,7 +1062,7 @@ int jsonTester(char* file, Bus* bus, processorState* state){
 
 
   char fileContents[fileLength+1];
-  fread(fileContents, sizeof(char), fileLength, fptr);
+  (void)!fread(fileContents, sizeof(char), fileLength, fptr);
   fileContents[fileLength] = '\0';
   //fgets(fileContents, fileLength, fptr);
   //printf("File Size: %d \n", fileLength);

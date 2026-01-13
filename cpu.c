@@ -27,18 +27,6 @@
 int pageFlag;
 
 
-// to start a cpu from an outsider, this function is to be used.
-//
-// int cond is used to pass information on how the cpu should run 
-//
-// the first bit of int cond is a flag for step through or run as fast as possible
-int execute(CPU* cpu, Bus* bus, int cond){
-
-  
-  return 0;
-
-
-}
 
 void reset(CPU* cpu, Bus* bus){
     cpu->a = 0;
