@@ -615,6 +615,7 @@ int decodeAndExecute(CPU* cpu, Bus* bus, uint8_t oppCode){
   if(cyclesCompleted == -1){
     printf("Error detected, halting excution \n");
     printf("Please restart \n");
+    printf("oppcode: %x \n", oppCode);
     halt(cpu);
     return 114;
   }
@@ -1356,6 +1357,8 @@ int ldx(CPU* cpu, Bus* bus, AddrMode mode){
     case zeroPage:
       return 3;
     case zeroPageX:
+      return 4;
+    case zeroPageY:
       return 4;
     case absolute:
       return 4;

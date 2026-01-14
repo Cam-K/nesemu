@@ -48,7 +48,9 @@
 #define MAX_STR 128
 
 // original resolution of Nintendo
-#define CPU_CYCLES_PER_SCANLINE 114
+
+// this includes the hblanking period as well
+#define CPU_CYCLES_PER_SCANLINE 142
 
 void parseTwoHexNums(char*, uint16_t*, uint16_t*);
 
@@ -595,8 +597,8 @@ void startNes(char* romPath, int screenScaling){
       printf("nnumofprgroms: %d \n", numOfChrRoms);
       initBus(&bus, numOfPrgRoms + 1);
       initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
-      for(int i = 1; i <= numOfPrgRoms + 1; ++i){
-        initMemStruct(&(bus.memArr[i]), 0x4000, Rom, TRUE);
+      for(int i = 1; i < numOfPrgRoms + 1; ++i){
+        initMemStruct(bus.memArr + i, 0x4000, Rom, TRUE);
       }
 
       initPpu(bus.ppu, numOfChrRoms);
