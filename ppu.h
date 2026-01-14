@@ -122,7 +122,7 @@ typedef struct _PPU {
   // during rendering, used to hold the address of the currently fetched nametable address, outside of rendering, used to hold the VRAM address for reading/writing PPUDATA/PPUADDR
   union VRegister vregister;
 
-  // during rendering, used to hold the scroll position (top left tile, or zero-th tile in the nametable.
+  // during rendering, used to hold the scroll position (top left tile, or zero-th tile in the nametable).
   // outside of rendering, used to temporarily hold the VRAM address before transferring it to vregister
   union VRegister tregister;
 

@@ -102,6 +102,8 @@ void resetPpu(PPU* ppu, int powerFlag){
   ppu->scanLineSprites = -1;
 
   ppu->prerenderScanlineFlag = 0;
+  ppu->attributeData1 = 0;
+  ppu->attributeData2 = 0;
 
   ppu->flagChrRam = 0;
   
@@ -407,9 +409,11 @@ void renderScanline(PPU* ppu){
 
 
       // fetch data from shift registers for the current pixel
+      currentAttributeData1 = 0;
       currentAttributeData1 = (getBitFromLeft16bit(ppu->attributeData1, ppu->xregister));
       currentAttributeData1 = currentAttributeData1 >> findBit16bit(currentAttributeData1);
       
+      currentAttributeData2 = 0;
       currentAttributeData2 = (getBitFromLeft16bit(ppu->attributeData2, ppu->xregister));
       currentAttributeData2 = currentAttributeData2 >> findBit16bit(currentAttributeData2);
       currentAttributeData2 = currentAttributeData2 << 1;

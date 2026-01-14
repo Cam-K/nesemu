@@ -27,6 +27,7 @@
 #include <SDL2/SDL_video.h>
 #include <stdint.h>
 #include <bits/getopt_core.h>
+#include <linux/limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -122,25 +123,22 @@ int main(int argc, char* argv[]){
   
 
   uint8_t oppCode;
-  uint64_t hexLineCounter;
-  uint16_t start;
-  uint16_t end;
+
+
 
   // general purpose iterator variables
   uint16_t i;
-  uint16_t j;
+
 
   // variables related to file handling
   int fileSize;
   int fFlag = 0;
   int hFlag = 0;
-  int pFlag = 0;
   int nFlag = 0;
   int iFlag = 0;
   int sFlag = 0;
   int opt;
   int jFlag = 0;
-  char input[MAX_STR]; 
   char fileDirectory[MAX_STR];
   char file[MAX_STR];
   char screenScaling[MAX_STR];
@@ -313,8 +311,8 @@ void interpreter(Bus* bus){
   uint16_t end;
   uint16_t val;
   uint16_t addr;
-  uint16_t inputNum;
   char input[MAX_STR]; 
+  long inputNum;
   printf("***** type 'h' to print help ******\n");
   while(1){
     oppCode = readBus(bus, bus->cpu->pc); 
@@ -431,7 +429,6 @@ void startNes(char* romPath, int screenScaling){
     screenScaling = 1;
   }
 
-  SDL_Event event;
   SDL_Window* win = SDL_CreateWindow("erNES", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH * screenScaling, WINDOW_HEIGHT * screenScaling, 0);
   SDL_Renderer *renderer;
   SDL_Texture *texture;
@@ -488,6 +485,7 @@ void startNes(char* romPath, int screenScaling){
   switch(bus.mapper){
 
     case 0:
+      printf("mapper 0 \n");
       // NROM Mapper
       // Setup NROM mapper and starts the main loop
 
@@ -547,11 +545,12 @@ void startNes(char* romPath, int screenScaling){
       break;
     
     case 2:
+      printf("mapper 2 \n");
       printf("numofprgroms %x \n", numOfPrgRoms);
       initBus(&bus, numOfPrgRoms + 1);
       initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
-      for(int i = 1; i <= numOfPrgRoms + 1; ++i){
-        initMemStruct(&(bus.memArr[i]), 0x4000, Rom, TRUE);
+      for(int i = 1; i < numOfPrgRoms + 1; ++i){
+        initMemStruct(bus.memArr + i, 0x4000, Rom, TRUE);
       }
       
       initPpu(bus.ppu, numOfChrRoms);
@@ -592,6 +591,7 @@ void startNes(char* romPath, int screenScaling){
 
       break;
     case 3:
+      printf("mapper 3 \n");
       printf("nnumofprgroms: %d \n", numOfChrRoms);
       initBus(&bus, numOfPrgRoms + 1);
       initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
@@ -1037,8 +1037,7 @@ int populateMemWithJson(Bus* bus, cJSON* json){
 //   Bus* -  bus to be tested
 int jsonTester(char* file, Bus* bus, processorState* state){
   FILE *fptr;
-  processorState erroredOut;
-  erroredOut.errorFlag = 1;
+
 
   fptr = fopen(file, "r");
   int fileLength;

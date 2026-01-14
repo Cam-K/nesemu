@@ -1898,6 +1898,8 @@ uint8_t addressModeDecode(CPU* cpu, Bus* bus, AddrMode mode){
       highByte = readBus(bus, ++cpu->pc);
       uint16_t currPage = cpu->pc & 0xff00;
       uint16_t newPage = ((highByte << 8) + lowByte) & 0xff00;
+      // TODO: implement proper pageFlag behaviour i.e. it's set when a page boundary is crossed
+      // for absoluteX, absoluteY and indirectY
       if(currPage == newPage){
         pageFlag = 1;
       } else {

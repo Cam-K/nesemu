@@ -39,7 +39,7 @@ void initMemStruct(Mem* mem, uint64_t size, enum DeviceType type, int inuse){
   mem->startAddr = 0;
   mem->endAddr = 0;
   mem->inuse = inuse;
-  //mem->mapped = 0;
+  mem->mapped = 0;
 
   clearMem(mem);
 }
@@ -168,7 +168,7 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
 void writeBus(Bus* bus, uint16_t addr, uint8_t val){
   int prevVal;
   
-  if(addr >= 0 && addr <= 0x07ff){
+  if(addr <= 0x07ff){
     bus->memArr[0].contents[addr] = val;
   } else if(addr >= 0x0800 && addr <= 0x0fff){
     bus->memArr[0].contents[addr - 0x800] = val;
@@ -259,18 +259,18 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
     // NROM mapper (the basic bitch mapper)
     switch(bus->mapper){
       case 0:
-        if(addr >= 0x8000 && addr <= 0xffff){
+        if(addr >= 0x8000){
           return;
         }
         break;
       case 2:
-        if(addr >= 0x8000 && addr <= 0xffff){
+        if(addr >= 0x8000){
           bus->bankSelect = val;
           bus->bankSelect = bus->bankSelect & 0xf;
         }
         break;
       case 3:
-        if(addr >= 0x8000 && addr <= 0xffff){
+        if(addr >= 0x8000){
           bus->ppu->bankSelect = val;
           bus->ppu->bankSelect = bus->ppu->bankSelect & 0b11;
         }
@@ -450,20 +450,20 @@ uint8_t readBus(Bus* bus, uint16_t addr){
     switch(bus->mapper){
       // NROM mapper
       case 0:
-        if(addr >= 0x8000 && addr <= 0xffff){
+        if(addr >= 0x8000){
           return bus->memArr[1].contents[addr - 0x8000];
         }
         break;
       case 2:
         if(addr >= 0x8000 && addr <= 0xbfff){
           return bus->memArr[bus->bankSelect + 1].contents[addr - 0x8000];
-        } else if(addr >= 0xc000 && addr <= 0xffff){
+        } else if(addr >= 0xc000){
           return bus->memArr[bus->numOfBlocks - 1].contents[addr - 0xc000];
         }
       case 3:
         if(addr >= 0x8000 && addr <= 0xbfff){
           return bus->memArr[1].contents[addr - 0x8000];
-        } else if(addr >= 0xc000 && addr <= 0xffff){
+        } else if(addr >= 0xc000){
           return bus->memArr[2].contents[addr - 0xc000];
         }
         
@@ -555,7 +555,7 @@ uint8_t readPpuBus(PPU* ppu, uint16_t addr){
   } else if(addr >= 0x3fe0 && addr <= 0x3fff){
     return ppu->paletteram[addr - 0x3fe0];
   } 
-
+  return 0;
 }
 
 
