@@ -50,7 +50,7 @@
 // original resolution of Nintendo
 
 // this includes the hblanking period as well
-#define CPU_CYCLES_PER_SCANLINE 142
+#define CPU_CYCLES_PER_SCANLINE 114
 
 void parseTwoHexNums(char*, uint16_t*, uint16_t*);
 
@@ -422,6 +422,10 @@ void startNes(char* romPath, int screenScaling){
   int numOfPrgRoms;
   int numOfChrRoms;
   int cycles;
+
+  uint16_t prgRamSize; // 0 - no PRG-RAM
+  int tvSystem;
+  int presenceOfPrgRam; // boolean value whether PRG-RAM is present
   uint8_t oppCode;
   int scanlines = 0;
   uint8_t tempInt;
@@ -446,6 +450,7 @@ void startNes(char* romPath, int screenScaling){
   }
 
   // parses header and checks to see if it is an .ines file
+  // bytes 0-3 of ines header
   for(int i = 0; i < 4; ++i){
     byte = fgetc(romPtr);
     if(i == 0 && byte != 0x4e){
@@ -463,22 +468,42 @@ void startNes(char* romPath, int screenScaling){
   if(wrongFileFlag == 1)
     printf("Selected file is not an NES rom \n");
 
+
+  // byte 4
   numOfPrgRoms = fgetc(romPtr);
+
+  // byte 5
   numOfChrRoms = fgetc(romPtr);
+
+  // byte 6
   tempInt = fgetc(romPtr);
   bus.mapper = (tempInt >> 4) & 0b1111;
 
  
   mirroring = getBit(tempInt, 0);
+
+  // byte 7
   bus.mapper = (bus.mapper | ((fgetc(romPtr) & 0b11110000)));
   
+  // byte 8
   fgetc(romPtr);
-  if(fgetc(romPtr) == 1){
+
+  // byte 9
+  fgetc(romPtr);
+  // byte 10
+  prgRamSize = 64 << (fgetc(romPtr) & 0b1111);
+
+  // byte 11
+  fgetc(romPtr);
+  // byte 12
+  tvSystem = fgetc(romPtr);
+  if(tvSystem == 1 || tvSystem == 3){
     printf("Error: PAL Rom detected \n");
     freeAndExit(&bus); 
   }
+  
   // next 7 bytes are not needed (see ines header format spec)
-  for(int i = 0; i < 6; ++i){
+  for(int i = 0; i < 3; ++i){
     fgetc(romPtr);
   }
   
@@ -546,6 +571,33 @@ void startNes(char* romPath, int screenScaling){
       nesMainLoop(&bus, renderer, texture, screenScaling);
       break;
     
+
+    case 1: 
+      printf("mapper 1 \n");
+      if(prgRamSize == 0){
+        initBus(&bus, numOfPrgRoms + 1);
+      } else {
+        initBus(&bus, numOfPrgRoms + 2);
+      }
+      initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
+
+      // PRG-RAM gets allocated first ($6000-$7fff)
+      if(prgRamSize != 0){
+        initMemStruct(bus.memArr + 1, prgRamSize, Ram, TRUE);
+        for(int i = 2; i < numOfPrgRoms + 1; ++i){
+          initMemStruct(bus.memArr + i, 0x4000, Rom, TRUE);
+        }
+      } else {
+
+        for(int i = 1; i < numOfPrgRoms + 1; ++i){
+          initMemStruct(bus.memArr + i, 0x4000, Rom, TRUE);
+        }
+      }
+      initPpu(bus.ppu, numOfChrRoms);
+      populatePalette(bus.ppu);
+ 
+
+      break;
     case 2:
       printf("mapper 2 \n");
       printf("numofprgroms %x \n", numOfPrgRoms);
@@ -677,7 +729,6 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int scr
       int mirroring = bus->ppu->mirroring;
       SDL_Event event;
       uint64_t freq = SDL_GetPerformanceFrequency();
-      uint64_t last = SDL_GetPerformanceCounter();
       uint64_t frame_start = 0;
       uint64_t frame_end = 0;
       double elasped_ms;
@@ -687,12 +738,11 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int scr
       int processLightGunInput = 0;
       const double target_fps = 60.0;
       const double target_frame_time = 1000.0 / target_fps;
-      int framesLastTime = 0;
-      int framesFirstTime = 0;
       int mouseX;
       int mouseY;
 
 
+      // enter main loop
       while(1){
       // mark time at the start of the frame being drawn
  
@@ -760,6 +810,7 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int scr
               }
             }
 
+          // polls for events at the end of each prerender scanline (once per frame)
           while (SDL_PollEvent(&event)) {
               switch (event.type) {
                 case SDL_QUIT:
@@ -843,7 +894,7 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int scr
         }
         
 
-        // poll for events at the start of the frame 
+ 
        
   }
 }

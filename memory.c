@@ -195,10 +195,12 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         break;
       case 0x2005:
         if(bus->ppu->wregister == 0){
+          printf("writing courseX: %x at scanline %d during frame %d \n", (val & 0xf8) >> 3, bus->ppu->scanLine, bus->ppu->frames);
           bus->ppu->xregister = (val & 0x07);
           bus->ppu->tregister.vcomp.courseX = ((val & 0xf8) >> 3);
           bus->ppu->wregister = 1;
         } else if(bus->ppu->wregister == 1){
+          printf("writing courseY: %x at scanline %d during frame %d \n", (val & 0xf8) >> 3, bus->ppu->scanLine, bus->ppu->frames);
           bus->ppu->tregister.vcomp.courseY = ((val & 0xf8) >> 3);
           bus->ppu->tregister.vcomp.fineY = (val & 0x07);
           bus->ppu->wregister = 0;
@@ -456,8 +458,10 @@ uint8_t readBus(Bus* bus, uint16_t addr){
         break;
       case 2:
         if(addr >= 0x8000 && addr <= 0xbfff){
+          // offset of 1 here indexing into the array because index 0 is ram
           return bus->memArr[bus->bankSelect + 1].contents[addr - 0x8000];
         } else if(addr >= 0xc000){
+          // - 1 because you want to get the very last block of memory
           return bus->memArr[bus->numOfBlocks - 1].contents[addr - 0xc000];
         }
       case 3:

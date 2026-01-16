@@ -141,6 +141,9 @@ typedef struct _PPU {
 
   // variable to track whether the nes is in vertical blanking or not
   int vblank;
+
+  // variable to track whether the nes is in horizontal blanking or not
+  int hblank; 
   
   int frames;
   
@@ -176,7 +179,6 @@ void vblankToggle(PPU*);
 void vblankStart(Bus*);
 void vblankEnd(Bus*);
 
-void allocateNewFrameBuffer(PPU*);
 
 void printNameTable(Bus*);
 

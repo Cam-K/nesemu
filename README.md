@@ -4,7 +4,7 @@ A Nintendo Entertainment System emulator, written in C.
 
 ## Description
 
-An NES emulator that is able to boot games such as Castlevania and Super Mario Bros.
+An NES emulator using SDL2 as it's graphics library that is able to boot games such as Castlevania and Super Mario Bros.
 
 Features a CPU tester to check the core against the Tom Harte processor routines, with the appropriate JSON data.
 
@@ -27,7 +27,7 @@ Currently a work in progress.
 ## Libraries Needed (Ubuntu)
 ``sudo apt install libcjson-dev libcjson1 libsdl2-dev libsdl2-2.0-0``
 
-## How to run
+## Usage
 ### To print help
 ``./nesemu -h``
 

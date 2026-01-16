@@ -88,7 +88,7 @@ uint8_t setBitFromLeft(uint8_t val, uint8_t bitNum){
 }
 
 uint16_t getBitFromLeft16bit(uint16_t val, uint8_t bitNum){
-
+ 
   return (val & 0b1000000000000000 >> bitNum);
 }
 

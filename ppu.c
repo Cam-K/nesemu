@@ -105,7 +105,9 @@ void resetPpu(PPU* ppu, int powerFlag){
   ppu->attributeData1 = 0;
   ppu->attributeData2 = 0;
 
+  ppu->hblank = 0;
   ppu->flagChrRam = 0;
+
   
   
 
@@ -644,23 +646,8 @@ void incrementCourseX(PPU* ppu){
 }
 
 
-// allocateFrameBufffer()
-//   frees and allocates a new framebuffer
-void allocateNewFrameBuffer(PPU* ppu){
 
 
-  //printf("Allocating new framebuffer \n");
-  for(int i = 0; i < WINDOW_HEIGHT; ++i){
-    free(ppu->frameBuffer[i]);
-  } 
-
-  free(ppu->frameBuffer);
-  ppu->frameBuffer = malloc(sizeof(uint32_t*) * WINDOW_HEIGHT);
-  for(int i = 0; i < WINDOW_HEIGHT; ++i){
-    ppu->frameBuffer[i] = malloc(sizeof(uint32_t) * WINDOW_WIDTH);
-  } 
-
-}
 
 void fetchFirstTwoTiles(PPU* ppu){
 
@@ -814,6 +801,7 @@ void prerenderScanline(Bus* bus){
   bus->ppu->prerenderScanlineFlag = 0;
   bus->ppu->scanLine = 0;
   bus->ppu->scanLineSprites = -1;
+  bus->ppu->frames++;
 
 }
 
