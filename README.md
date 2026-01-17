@@ -19,9 +19,11 @@ Currently a work in progress.
 
 
 ## How to compile on a Linux system
-``git clone https://github.com/Cam-K/nesemu.git``  
-``cd nesemu``  
-``make`` 
+```
+git clone https://github.com/Cam-K/nesemu.git
+cd nesemu
+make
+```
 
 
 ## Libraries Needed (Ubuntu)
