@@ -58,6 +58,20 @@ typedef struct _Mem {
   int mapped;
 } Mem;
 
+// look at https://www.nesdev.org/wiki/MMC1 for understanding of MMC1 Registers
+
+typedef struct _MMC1Register{
+  unsigned int reg : 5;
+} MMC1Register;
+
+typedef struct _MMC1{
+  MMC1Register control;
+  MMC1Register chrBank0;
+  MMC1Register chrBank1;
+  MMC1Register prgBank;
+  MMC1Register shiftRegister;
+
+} MMC1;
 typedef struct _controller {
 
   // variable set whether it has been strobed or not
@@ -112,6 +126,10 @@ typedef struct _Bus {
   // used for UxROM games
   uint8_t bankSelect;
 
+  // used as the shift register for MMC1 games
+  // only 5 bits in length
+  MMC1 mmc1;
+
 
 
 } Bus; 
@@ -126,6 +144,8 @@ void clearMem(Mem*);
 uint8_t readBus(Bus*, uint16_t);
 void writeBus(Bus*, uint16_t, uint8_t);
 void mapMemory(Bus*, uint16_t, uint16_t);
+
+void initMmc(MMC1*);
 
 uint8_t readPpuBus(PPU*, uint16_t);
 void writePpuBus(PPU*, uint16_t, uint8_t);

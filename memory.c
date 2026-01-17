@@ -51,6 +51,21 @@ void clearMem(Mem* mem){
   }
 }
 
+
+// used to initialize the internal MMC1 registers;
+void initMmc(MMC1* mmc1){
+
+  mmc1->chrBank0.reg = 0;
+  mmc1->chrBank1.reg = 0;
+  mmc1->prgBank.reg = 0;
+  mmc1->control.reg = 0;
+
+  // initializes to 0x10 because this equals 0x10000, which the one is needed when the data is shifted and we know when it is meant to terminate.
+  mmc1->shiftRegister.reg = 0x10;
+  
+}
+
+
 // mapMemory()
 // specifies where to map a block of memory on the bus.
 // Must be initialized and apart and of the memArr array already, and is referenced
@@ -125,6 +140,7 @@ void initBus(Bus* bus, uint16_t banks){
 
 
   bus->bankSelect = 0;
+  initMmc(&bus->mmc1); 
 }
 
 #if NESEMU == 0
@@ -263,6 +279,55 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
       case 0:
         if(addr >= 0x8000){
           return;
+        }
+        break;
+
+      case 1:
+        if(addr >= 0x8000){
+          if(getBit(val, 7) != 0){
+            // clears the shift register, default value 0x10.
+            bus->mmc1.shiftRegister.reg = 0x10;
+          } else {
+            if(getBit(bus->mmc1.shiftRegister.reg, 0) != 1){
+
+              // shift bit into shift register
+              bus->mmc1.shiftRegister.reg = bus->mmc1.shiftRegister.reg >> 1;
+              if(getBit(val, 0) == 0){
+                bus->mmc1.shiftRegister.reg = clearBit(bus->mmc1.shiftRegister.reg, 5);
+              } else if (getBit(val, 0) == 1){
+                bus->mmc1.shiftRegister.reg = setBit(bus->mmc1.shiftRegister.reg, 5);
+              }
+
+            } else {
+              // shift bit into shift register
+              bus->mmc1.shiftRegister.reg = bus->mmc1.shiftRegister.reg >> 1;
+              if(getBit(val, 0) == 0){
+                bus->mmc1.shiftRegister.reg = clearBit(bus->mmc1.shiftRegister.reg, 5);
+              } else if (getBit(val, 0) == 1){
+                bus->mmc1.shiftRegister.reg = setBit(bus->mmc1.shiftRegister.reg, 5);
+              }
+
+              // shift register contents gets copied into internal register
+              if(addr >= 0x8000 & addr <= 0x9fff){
+                bus->mmc1.control.reg = bus->mmc1.shiftRegister.reg;
+                if(bus->mmc1.control.reg && 0b11 == 2){
+                  bus->ppu->mirroring = 1;
+                } else if(bus->mmc1.control.reg && 0b11 == 3){
+                  bus->ppu->mirroring = 0;
+                }
+              } else if(addr >= 0xa000 & addr <= 0xbfff){
+                bus->mmc1.chrBank0.reg = bus->mmc1.shiftRegister.reg;
+              } else if(addr >= 0xc000 & addr <= 0xdfff){
+                bus->mmc1.chrBank1.reg = bus->mmc1.shiftRegister.reg;
+              } else if(addr >= 0xe000 & addr <= 0xffff){
+                bus->mmc1.prgBank.reg = bus->mmc1.shiftRegister.reg;
+              }
+
+              // gets reset once the data from the shift register has been latched into the appropriate
+              // internal register.
+              bus->mmc1.shiftRegister.reg = 0x10;
+            }
+          }
         }
         break;
       case 2:
@@ -453,7 +518,24 @@ uint8_t readBus(Bus* bus, uint16_t addr){
       // NROM mapper
       case 0:
         if(addr >= 0x8000){
+          // index 1 corresponds to PRG-ROM for mapper 0
           return bus->memArr[1].contents[addr - 0x8000];
+        }
+        break;
+      case 1:
+        if(addr >= 0x6000 & addr <= 0x7fff){
+          // index 1 corresponds to PRG-RAM for mapper 1
+          return bus->memArr[1].contents[addr - 0x6000];
+        } else if(addr >= 0x8000){
+          // 32 kb mode
+          if(bus->mmc1.control.reg && 0b1100 == 0 || bus->mmc1.control.reg && 0b1100 == 0b0100){
+            if(addr <= 0xbfff){
+              
+            } else if(addr >= 0xc000){
+   
+            }
+          } 
+          return bus->memArr[2].contents[addr - 0x8000];
         }
         break;
       case 2:
@@ -581,25 +663,25 @@ void writePpuBus(PPU* ppu, uint16_t addr, uint8_t val){
 
     // vertical arrangement (horizontal mirroring)
     if(ppu->mirroring == 0){
-      if(addr >= 0x2000 && addr <= 0x23bf){
+      if(addr >= 0x2000 && addr <= 0x23ff){
         ppu->vram[(addr - 0x2000) + 0x400] = val;
-      } else if(addr >= 0x2400 && addr <= 0x27bf){
+      } else if(addr >= 0x2400 && addr <= 0x27ff){
         ppu->vram[(addr - 0x2000) - 0x400] = val;
-      } else if(addr >= 0x2800 && addr <= 0x2bbf){
+      } else if(addr >= 0x2800 && addr <= 0x2bff){
         ppu->vram[(addr - 0x2000) + 0x400] = val;
-      } else if(addr >= 0x2c00 && addr <= 0x2fbf){
+      } else if(addr >= 0x2c00 && addr <= 0x2fff){
         ppu->vram[(addr - 0x2000) - 0x400] = val;
       }
       // horizontal arrangement (vertical mirroring)
     } else if(ppu->mirroring == 1){
 
-      if(addr >= 0x2000 && addr <= 0x23bf){
+      if(addr >= 0x2000 && addr <= 0x23ff){
         ppu->vram[(addr - 0x2000) + 0x800] = val;
-      } else if(addr >= 0x2400 && addr <= 0x27bf){
+      } else if(addr >= 0x2400 && addr <= 0x27ff){
         ppu->vram[(addr - 0x2000) + 0x800] = val;
-      } else if(addr >= 0x2800 && addr <= 0x2bbf){
+      } else if(addr >= 0x2800 && addr <= 0x2bff){
         ppu->vram[(addr - 0x2000) - 0x800] = val;
-      } else if(addr >= 0x2c00 && addr <= 0x2fbf){
+      } else if(addr >= 0x2c00 && addr <= 0x2fff){
         ppu->vram[(addr - 0x2000) - 0x800] = val;
       }
     
