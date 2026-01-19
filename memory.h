@@ -27,7 +27,9 @@
 #include <stdio.h>
 #include "cpu.h"
 #include "general.h"
-#include "ppu.h"
+
+
+
 
 #define TRUE 1
 #define FALSE 0
@@ -72,6 +74,10 @@ typedef struct _MMC1{
   MMC1Register shiftRegister;
 
 } MMC1;
+
+#include "ppu.h"
+
+
 typedef struct _controller {
 
   // variable set whether it has been strobed or not

@@ -580,36 +580,43 @@ void startNes(char* romPath, int screenScaling){
       printf("prgramsize %x \n", prgRamSize);
       printf("numofprgrom: %d \n", numOfPrgRoms);
       if(prgRamSize == 0){
+        printf("prg ram not present \n");
+        // + 1 because we have to account for 0x000-0x7ff ram, alongside the PRG-ROM
         initBus(&bus, numOfPrgRoms + 1);
         bus.presenceOfPrgRam = 0;
       
       } else {
+        // + 2 because we have to account for 0x000-0x7ff ram, along with the PRG-RAM and PRG-ROM
         initBus(&bus, numOfPrgRoms + 2);
         bus.presenceOfPrgRam = 1;
       }
       initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
 
-      // PRG-RAM gets allocated first ($6000-$7fff)
-      if(prgRamSize != 0){
-        initMemStruct(bus.memArr + 1, prgRamSize, Ram, TRUE);
-        for(int i = 2; i < numOfPrgRoms + 1; ++i){
+      if(prgRamSize == 0){
+        for(int i = 1; i < numOfPrgRoms + 1; ++i){
           initMemStruct(bus.memArr + i, 0x4000, Rom, TRUE);
         }
         
       } else {
-
-        for(int i = 1; i < numOfPrgRoms + 1; ++i){
+        // PRG-RAM gets allocated first ($6000-$7fff)
+        initMemStruct(bus.memArr + 1, prgRamSize, Ram, TRUE);
+        for(int i = 2; i < numOfPrgRoms + 2; ++i){
           initMemStruct(bus.memArr + i, 0x4000, Rom, TRUE);
         }
       }
-      initPpu(bus.ppu, numOfChrRoms);
+      if(numOfChrRoms > 0){
+        initPpu(bus.ppu, numOfChrRoms * 2);
+      } else if(numOfChrRoms == 0){
+        initPpu(bus.ppu, 1);
+      }
       populatePalette(bus.ppu);
 
       if(numOfChrRoms == 0){
         initMemStruct(&(bus.ppu->ppubus->memArr[0]), 0x2000, Ram, TRUE);
       } else {
-        for(int i = 0; i < numOfChrRoms; ++i){
-          initMemStruct(&(bus.ppu->ppubus->memArr[i]), 0x2000, Rom, TRUE);
+        printf("setting up chrroms \n");
+        for(int i = 0; i < numOfChrRoms * 2; ++i){
+          initMemStruct(&(bus.ppu->ppubus->memArr[i]), 0x1000, Rom, TRUE);
         }
       }
 
@@ -618,8 +625,10 @@ void startNes(char* romPath, int screenScaling){
           bus.memArr[i + 1].contents[j] = fgetc(romPtr);
         }
       }
-      for(int i = 0; i < numOfChrRoms; ++i){
-        for(int j = 0; j < 0x2000; ++j){
+
+      // reserves chunks of 4KB of memory, so that they can be banked in and out by the MMC1 mapper
+      for(int i = 0; i < (numOfChrRoms * 2); ++i){
+        for(int j = 0; j < 0x1000; ++j){
           bus.ppu->ppubus->memArr[i].contents[j] = fgetc(romPtr);
         }
 
@@ -789,6 +798,7 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int scr
       int mouseY;
 
 
+
       // enter main loop
       while(1){
       // mark time at the start of the frame being drawn
@@ -796,9 +806,9 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int scr
         if(bus->cpu->cycles < CPU_CYCLES_PER_SCANLINE){
           oppCode = readBus(bus, bus->cpu->pc);
           bus->cpu->cycles += decodeAndExecute(bus->cpu, bus, oppCode);
+
           //printf("cycles total: %d \n", bus.cpu->cycles);
         } else if(bus->cpu->cycles >= CPU_CYCLES_PER_SCANLINE){
-
           // render a scanline except while in vblank and during the prerender scanline (261)
           if(bus->ppu->vblank == 0 && bus->ppu->prerenderScanlineFlag == 0){
             renderScanline(bus->ppu);

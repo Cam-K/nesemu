@@ -164,6 +164,11 @@ typedef struct _PPU {
   // used to select the bank for CNROM games
   int bankSelect;
 
+
+  // a copy of the MMC1 registers from the Bus struct, stored here so that
+  // they can be accessed in functions that only pass a PPU* pointer
+  MMC1 mmc1Copy;
+
 } PPU;
 
 void initPpu(PPU*, int);
@@ -201,5 +206,6 @@ void incrementY(PPU*);
 void fetchFirstTwoTiles(PPU*);
 
 void fillTempV(uint16_t*, struct VComponent); 
+void copyMmc1(MMC1*, MMC1*);
 
 void prerenderScanline(Bus*);

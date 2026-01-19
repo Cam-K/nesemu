@@ -260,6 +260,16 @@ int getEightSixteen(PPU* ppu){
   return -1;
 }
 
+// copyMmc1()
+//   meant to copy a set of MMC1 registers from one struct to another
+void copyMmc1(MMC1* src, MMC1* dest){
+  dest->chrBank0.reg = src->chrBank0.reg;
+  dest->chrBank1.reg = src->chrBank1.reg;
+  dest->control.reg = src->control.reg;
+  dest->prgBank.reg = src->prgBank.reg;
+  
+}
+
 
 // spriteEvaluation()
 //    performs a sprite evaluation on the PPU's OAM
@@ -368,10 +378,9 @@ void renderScanline(PPU* ppu){
   for(int i = 0; i < WINDOW_WIDTH; ++i){
 
 
-
+    
     // if background rendering is enabled
     if(getBit(ppu->mask, 3) == 0b1000){
-
       // every tile, fetch the bitplanes from the nametable a tile ahead, to keep the buffer filled
       if(i != 0 && i % 8 == 0){ 
         fillTempV(&tempV, ppu->vregister.vcomp);

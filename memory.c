@@ -58,7 +58,7 @@ void initMmc(MMC1* mmc1){
   mmc1->chrBank0.reg = 0;
   mmc1->chrBank1.reg = 0;
   mmc1->prgBank.reg = 0;
-  mmc1->control.reg = 0;
+  mmc1->control.reg = 0b1100;
 
   // initializes to 0x10 because this equals 0x10000, which the one is needed when the data is shifted and we know when it is meant to terminate.
   mmc1->shiftRegister.reg = 0x10;
@@ -212,12 +212,10 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
         break;
       case 0x2005:
         if(bus->ppu->wregister == 0){
-          printf("writing courseX: %x at scanline %d during frame %d \n", (val & 0xf8) >> 3, bus->ppu->scanLine, bus->ppu->frames);
           bus->ppu->xregister = (val & 0x07);
           bus->ppu->tregister.vcomp.courseX = ((val & 0xf8) >> 3);
           bus->ppu->wregister = 1;
         } else if(bus->ppu->wregister == 1){
-          printf("writing courseY: %x at scanline %d during frame %d \n", (val & 0xf8) >> 3, bus->ppu->scanLine, bus->ppu->frames);
           bus->ppu->tregister.vcomp.courseY = ((val & 0xf8) >> 3);
           bus->ppu->tregister.vcomp.fineY = (val & 0x07);
           bus->ppu->wregister = 0;
@@ -288,24 +286,25 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
           if(getBit(val, 7) != 0){
             // clears the shift register, default value 0x10.
             bus->mmc1.shiftRegister.reg = 0x10;
+            
           } else {
             if(getBit(bus->mmc1.shiftRegister.reg, 0) != 1){
 
               // shift bit into shift register
               bus->mmc1.shiftRegister.reg = bus->mmc1.shiftRegister.reg >> 1;
               if(getBit(val, 0) == 0){
-                bus->mmc1.shiftRegister.reg = clearBit(bus->mmc1.shiftRegister.reg, 5);
+                bus->mmc1.shiftRegister.reg = clearBit(bus->mmc1.shiftRegister.reg, 4);
               } else if (getBit(val, 0) == 1){
-                bus->mmc1.shiftRegister.reg = setBit(bus->mmc1.shiftRegister.reg, 5);
+                bus->mmc1.shiftRegister.reg = setBit(bus->mmc1.shiftRegister.reg, 4);
               }
 
             } else {
               // shift bit into shift register
               bus->mmc1.shiftRegister.reg = bus->mmc1.shiftRegister.reg >> 1;
               if(getBit(val, 0) == 0){
-                bus->mmc1.shiftRegister.reg = clearBit(bus->mmc1.shiftRegister.reg, 5);
+                bus->mmc1.shiftRegister.reg = clearBit(bus->mmc1.shiftRegister.reg, 4);
               } else if (getBit(val, 0) == 1){
-                bus->mmc1.shiftRegister.reg = setBit(bus->mmc1.shiftRegister.reg, 5);
+                bus->mmc1.shiftRegister.reg = setBit(bus->mmc1.shiftRegister.reg, 4);
               }
 
               // shift register contents gets copied into internal register
@@ -329,6 +328,7 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
               bus->mmc1.shiftRegister.reg = 0x10;
             }
           }
+          copyMmc1(&bus->mmc1, &bus->ppu->mmc1Copy);
         }
         break;
       case 2:
@@ -529,39 +529,53 @@ uint8_t readBus(Bus* bus, uint16_t addr){
         break;
       case 1:
         if(addr >= 0x6000 & addr <= 0x7fff){
+          printf("reading prg ram \n");
           // index 1 corresponds to PRG-RAM for mapper 1
-          return bus->memArr[1].contents[addr - 0x6000];
+          if(bus->presenceOfPrgRam == 1){
+            return bus->memArr[1].contents[addr - 0x6000];
+          } else {
+            return 0;
+          }
+
         } else if(addr >= 0x8000){
+
           // 32 kb mode
           if(((bus->mmc1.control.reg & 0b1100) == 0) || ((bus->mmc1.control.reg & 0b1100) == 0b0100)){
+            printf("32kb mode \n");
             if(addr <= 0xbfff){
-              return bus->memArr[bus->mmc1.prgBank.reg & 0b1110].contents[addr - 0x8000];
+              printf("prgbank %x \n", bus->mmc1.prgBank.reg + 1 + bus->presenceOfPrgRam);
+              // + 1 + presenceofPrgRam because we need the offset after the initial RAM and potentially PRG-RAM, if present
+              return bus->memArr[(bus->mmc1.prgBank.reg & 0b1110) + 1 + bus->presenceOfPrgRam].contents[addr - 0x8000];
             } else if(addr >= 0xc000){
-              // plus one because we want to get the next 16kb chunk if we are in 32kb mode, since the memory is divided up into 16k chunks\
+              uint8_t temp;
+              // plus one because we want to get the next 16kb chunk if we are in 32kb mode, since the memory is divided up into 16k chunks
               // on the back end anyways. So we emulate a 32kb entire chunk this way.
-              return bus->memArr[(bus->mmc1.prgBank.reg & 0b1110) + 1].contents[addr - 0xc000]; 
+              temp = bus->memArr[(bus->mmc1.prgBank.reg & 0b1110) + 2 + bus->presenceOfPrgRam].contents[addr - 0xc000]; 
+
             }
-            // if bit 2 and 3 equal 2
+            // if bit 2 and 3 equals 2
           } else if ((bus->mmc1.control.reg & 0b1100) == 0b1000){
+            printf("16 kb first bank fixed mode \n");
            if(addr <= 0xbfff){
             // 1 + bus->presenceofprgram because we need an offset of either 0 or 1 from this variable when determining whether
             // prgram is present or not.
               return bus->memArr[1 + bus->presenceOfPrgRam].contents[addr - 0x8000];
             } else if(addr >= 0xc000){
-              return bus->memArr[bus->mmc1.prgBank.reg + bus->presenceOfPrgRam + 1].contents[addr - 0xc000]; 
+              return bus->memArr[bus->mmc1.prgBank.reg + bus->presenceOfPrgRam + 2].contents[addr - 0xc000]; 
             }
-            // if bit 2 and bit 3 equal 3
+            // if bit 2 and bit 3 equals 3
           } else if ((bus->mmc1.control.reg & 0b1100) == 0b1100){
+            //printf("16 kb last bank fixed mode \n");
            if(addr <= 0xbfff){
             // 1 + bus->presenceofprgram because we need an offset of either 0 or 1 from this variable when determining whether
             // prgram is present or not.
               return bus->memArr[bus->mmc1.prgBank.reg + bus->presenceOfPrgRam + 1].contents[addr - 0x8000];
             } else if(addr >= 0xc000){
-              return bus->memArr[bus->numOfBlocks].contents[addr - 0xc000]; 
+              return bus->memArr[bus->numOfBlocks - 1].contents[addr - 0xc000]; 
             }
             
           }
-          return bus->memArr[2].contents[addr - 0x8000];
+          
         }
         break;
       case 2:
@@ -641,6 +655,29 @@ uint8_t readPpuBus(PPU* ppu, uint16_t addr){
     switch(ppu->mapper){
       case 0:
         return ppu->ppubus->memArr[0].contents[addr];
+      case 1:
+        // if chr-rom mode bit is equal to zero
+        if(ppu->ppubus->numOfBlocks > 1){ 
+        if(getBit(ppu->mmc1Copy.control.reg, 4) == 0){
+           if(addr <= 0xfff){
+             return ppu->ppubus->memArr[ppu->mmc1Copy.chrBank0.reg & 0b11110].contents[addr];
+           } else if(addr >= 0x1000){
+             return ppu->ppubus->memArr[(ppu->mmc1Copy.chrBank0.reg & 0b11110) + 1].contents[addr - 0x1000];
+           }
+
+          // if chr-rom mode bit is equal to one
+        } else if(getBit(ppu->mmc1Copy.control.reg, 4) != 0){
+           if(addr <= 0xfff){
+             return ppu->ppubus->memArr[ppu->mmc1Copy.chrBank0.reg].contents[addr];
+           } else if(addr >= 0x1000){
+             return ppu->ppubus->memArr[ppu->mmc1Copy.chrBank1.reg].contents[addr - 0x1000];
+           }
+        }
+        } else {
+          // CHR-RAM (no bank switching)
+          return ppu->ppubus->memArr[0].contents[addr];
+        }
+    
       case 2:
         return ppu->ppubus->memArr[0].contents[addr];
       case 3:
@@ -679,6 +716,10 @@ void writePpuBus(PPU* ppu, uint16_t addr, uint8_t val){
         ppu->ppubus->memArr[0].contents[addr] = val;
       } else {
         return;
+      }
+    } else if(ppu->mapper == 1){
+      if(ppu->ppubus->numOfBlocks == 1){
+        ppu->ppubus->memArr[0].contents[addr] = val;
       }
     }
     return;
