@@ -310,9 +310,9 @@ void writeBus(Bus* bus, uint16_t addr, uint8_t val){
               // shift register contents gets copied into internal register
               if(addr >= 0x8000 & addr <= 0x9fff){
                 bus->mmc1.control.reg = bus->mmc1.shiftRegister.reg;
-                if(bus->mmc1.control.reg && 0b11 == 2){
+                if((bus->mmc1.control.reg & 0b11) == 2){
                   bus->ppu->mirroring = 1;
-                } else if(bus->mmc1.control.reg && 0b11 == 3){
+                } else if((bus->mmc1.control.reg & 0b11) == 3){
                   bus->ppu->mirroring = 0;
                 }
               } else if(addr >= 0xa000 & addr <= 0xbfff){
@@ -551,6 +551,7 @@ uint8_t readBus(Bus* bus, uint16_t addr){
               // plus one because we want to get the next 16kb chunk if we are in 32kb mode, since the memory is divided up into 16k chunks
               // on the back end anyways. So we emulate a 32kb entire chunk this way.
               temp = bus->memArr[(bus->mmc1.prgBank.reg & 0b1110) + 2 + bus->presenceOfPrgRam].contents[addr - 0xc000]; 
+              return temp;
 
             }
             // if bit 2 and 3 equals 2

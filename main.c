@@ -603,7 +603,11 @@ void startNes(char* romPath, int screenScaling){
         for(int i = 2; i < numOfPrgRoms + 2; ++i){
           initMemStruct(bus.memArr + i, 0x4000, Rom, TRUE);
         }
+        for(int i = 0; i < prgRamSize; ++i){
+          bus.memArr[1].contents[i] = 0xff;
+        }
       }
+      
       if(numOfChrRoms > 0){
         initPpu(bus.ppu, numOfChrRoms * 2);
       } else if(numOfChrRoms == 0){
