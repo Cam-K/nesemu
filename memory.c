@@ -657,7 +657,6 @@ uint8_t readPpuBus(PPU* ppu, uint16_t addr){
         return ppu->ppubus->memArr[0].contents[addr];
       case 1:
         // if chr-rom mode bit is equal to zero
-        if(ppu->ppubus->numOfBlocks > 1){ 
         if(getBit(ppu->mmc1Copy.control.reg, 4) == 0){
            if(addr <= 0xfff){
              return ppu->ppubus->memArr[ppu->mmc1Copy.chrBank0.reg & 0b11110].contents[addr];
@@ -673,10 +672,7 @@ uint8_t readPpuBus(PPU* ppu, uint16_t addr){
              return ppu->ppubus->memArr[ppu->mmc1Copy.chrBank1.reg].contents[addr - 0x1000];
            }
         }
-        } else {
-          // CHR-RAM (no bank switching)
-          return ppu->ppubus->memArr[0].contents[addr];
-        }
+        
     
       case 2:
         return ppu->ppubus->memArr[0].contents[addr];
@@ -718,9 +714,39 @@ void writePpuBus(PPU* ppu, uint16_t addr, uint8_t val){
         return;
       }
     } else if(ppu->mapper == 1){
-      if(ppu->ppubus->numOfBlocks == 1){
-        ppu->ppubus->memArr[0].contents[addr] = val;
+
+      if(getBit(ppu->mmc1Copy.control.reg, 4) == 0){
+        if(addr <= 0xfff){
+          if(ppu->ppubus->memArr[ppu->mmc1Copy.chrBank0.reg & 0b1111].type == Ram){
+            ppu->ppubus->memArr[ppu->mmc1Copy.chrBank0.reg & 0b11110].contents[addr] = val;
+          } else {
+            return;
+          }
+        } else if(addr >= 0x1000){
+          if(ppu->ppubus->memArr[(ppu->mmc1Copy.chrBank0.reg & 0b11110) + 1].type == Ram){
+            ppu->ppubus->memArr[(ppu->mmc1Copy.chrBank0.reg & 0b11110) + 1].contents[addr - 0x1000] = val;
+          } else {
+            return;
+          }
+        }
+
+          // if chr-rom mode bit is equal to one
+      } else if(getBit(ppu->mmc1Copy.control.reg, 4) != 0){
+        if(addr <= 0xfff){
+          if(ppu->ppubus->memArr[ppu->mmc1Copy.chrBank0.reg].type == Ram){
+            ppu->ppubus->memArr[ppu->mmc1Copy.chrBank0.reg].contents[addr] = val;
+          } else {
+            return;
+          }
+        } else if(addr >= 0x1000){
+          if(ppu->ppubus->memArr[ppu->mmc1Copy.chrBank1.reg].type == Ram){
+            ppu->ppubus->memArr[ppu->mmc1Copy.chrBank1.reg].contents[addr - 0x1000] = val;
+          } else {
+            return;
+          }
+        }
       }
+
     }
     return;
   } else if(addr >= 0x2000 && addr <= 0x2fff){

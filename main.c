@@ -607,12 +607,14 @@ void startNes(char* romPath, int screenScaling){
       if(numOfChrRoms > 0){
         initPpu(bus.ppu, numOfChrRoms * 2);
       } else if(numOfChrRoms == 0){
-        initPpu(bus.ppu, 1);
+        initPpu(bus.ppu, 2);
       }
       populatePalette(bus.ppu);
 
       if(numOfChrRoms == 0){
-        initMemStruct(&(bus.ppu->ppubus->memArr[0]), 0x2000, Ram, TRUE);
+        initMemStruct(&(bus.ppu->ppubus->memArr[0]), 0x1000, Ram, TRUE);
+        initMemStruct(&(bus.ppu->ppubus->memArr[1]), 0x1000, Ram, TRUE);
+        
       } else {
         printf("setting up chrroms \n");
         for(int i = 0; i < numOfChrRoms * 2; ++i){
