@@ -77,6 +77,8 @@ typedef struct _PPU {
 
   // 0 -  vertical arrangement (horizontal mirroring)
   // 1 - horizontal arrangement (vertical mirroring)
+  // 2 - one screen, lower bank
+  // 3 - one screen, upper bank
   int mirroring;
   
   int scanLine;
@@ -102,6 +104,10 @@ typedef struct _PPU {
   // used to store nametables (buffer in memory that stores what sprites and which coordinates 
   // they are displayed at)
   uint8_t* vram;
+
+  // used to store nametables when the game is using single-screen mirroring (AxROM, SxROM, and TLSROM boards only).
+  uint8_t* vramA;
+  uint8_t* vramB;
 
   PPUBus* ppubus;
 

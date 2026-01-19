@@ -44,7 +44,7 @@ void initPpu(PPU* ppu, int banks){
   ppu->ppubus = calloc(1, sizeof(PPUBus));
 
   if(banks > 0){
-    ppu->ppubus->memArr = calloc(banks, sizeof(struct _Mem));
+    ppu->ppubus->memArr = calloc(banks, sizeof(Mem));
   } else if(banks == 0){
     ppu->ppubus->memArr = calloc(1, sizeof(Mem));
   }
