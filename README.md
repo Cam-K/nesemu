@@ -1,4 +1,4 @@
-# nesemu
+# erNES
 A Nintendo Entertainment System emulator, written in C.
 
 
@@ -14,7 +14,7 @@ Currently a work in progress.
 
 ### Mapper Support:
 - Mapper 0 (NROM)
-- Mapper 1 (MMC1) 
+- Mapper 1 (MMC1) (Partial Support) 
 - Mapper 2 (UxROM)
 - Mapper 3 (CNROM)
 
