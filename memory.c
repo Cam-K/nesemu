@@ -573,6 +573,7 @@ uint8_t readBus(Bus* bus, uint16_t addr){
             // prgram is present or not.
               return bus->memArr[1 + bus->presenceOfPrgRam].contents[addr - 0x8000];
             } else if(addr >= 0xc000){
+              // + 2 because this is the offset into memArr, after the initial RAM bank at 0x0000-0x07ff and the first, 16kb fixed bank
               return bus->memArr[bus->mmc1.prgBank.reg + bus->presenceOfPrgRam + 2].contents[addr - 0xc000]; 
             }
             // if bit 2 and bit 3 equals 3

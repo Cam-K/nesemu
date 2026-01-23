@@ -501,7 +501,7 @@ void startNes(char* romPath, int screenScaling){
   }
 
 
-  // second check for PRG-NVRAM (PRG-RAM and NVRAM are mutually exclusive)
+  // second check for PRG-NVRAM (PRG-RAM and PRG-NVRAM are mutually exclusive)
   if(prgRamSize == 0){
     prgRamSize = 64 << ((byte10 & 0b11110000) >> 4);
     if(prgRamSize == 64){
@@ -899,11 +899,8 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int scr
             renderScanline(bus->ppu);
           }
 
-            // increment scanline
-            bus->cpu->cycles = 0;
-            bus->ppu->scanLine++;
-            bus->ppu->scanLineSprites++;
-          if(bus->ppu->scanLine == 1){
+
+          if(bus->ppu->scanLine == 0){
             frame_start = SDL_GetPerformanceCounter();
 
           }
@@ -1032,7 +1029,20 @@ void nesMainLoop(Bus* bus, SDL_Renderer* renderer, SDL_Texture* texture, int scr
                 }
               }
 
+
             }
+
+            bus->ppu->scanLine++;
+            bus->ppu->scanLineSprites++;
+            bus->ppu->frames++;
+
+            bus->cpu->cycles = 0;
+
+            if(bus->ppu->scanLine == 262){
+              bus->ppu->scanLine = 0;
+              bus->ppu->scanLineSprites = -1;
+            }
+
         }
         
 

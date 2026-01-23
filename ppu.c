@@ -520,7 +520,7 @@ void renderScanline(PPU* ppu){
 
             if((ppu->scanLineSprites - ppu->oam[oamIndices[j]]) <= 7){
               bitPlane1 = readPpuBus(ppu, (spritePatternTableOffset + (((((uint16_t) ppu->oam[oamIndices[j] + 1]) & 0xfe) + 1) << 4) + (7 - (ppu->scanLineSprites - ppu->oam[oamIndices[j]]))));
-              bitPlane2 = readPpuBus(ppu, (spritePatternTableOffset + (((((uint16_t) ppu->oam[oamIndices[j] + 1]) & 0xfe) + 1) << 4) + (7 - (ppu->scanLineSprites - ppu->oam[oamIndices[j]] + 8))));      
+              bitPlane2 = readPpuBus(ppu, (spritePatternTableOffset + (((((uint16_t) ppu->oam[oamIndices[j] + 1]) & 0xfe) + 1) << 4) + (7 - ((ppu->scanLineSprites - ppu->oam[oamIndices[j]]) + 8))));      
             } else if((ppu->scanLineSprites - ppu->oam[oamIndices[j]]) > 7){
               bitPlane1 = readPpuBus(ppu, (spritePatternTableOffset + ((((uint16_t) ppu->oam[oamIndices[j] + 1]) & 0xfe) << 4) + (7 - ((ppu->scanLineSprites - ppu->oam[oamIndices[j]]) - 8))));
               bitPlane2 = readPpuBus(ppu, (spritePatternTableOffset + ((((uint16_t) ppu->oam[oamIndices[j] + 1]) & 0xfe) << 4) + (7 - (ppu->scanLineSprites - ppu->oam[oamIndices[j]]))));    
@@ -642,7 +642,6 @@ void fillTempV(uint16_t *tempV, struct VComponent vcomp){
 
 
 void incrementCourseX(PPU* ppu){
-  
     if(ppu->vregister.vcomp.courseX == 31){
       ppu->vregister.vcomp.courseX = 0;
       ppu->vregister.vcomp.nameTableSelect = getBit(ppu->vregister.vcomp.nameTableSelect, 1) | (getBit(ppu->vregister.vcomp.nameTableSelect, 0) ^ 0b01);
@@ -807,10 +806,7 @@ void prerenderScanline(Bus* bus){
 
 
   bus->ppu->prerenderScanlineFlag = 0;
-  bus->ppu->scanLine = 0;
-  bus->ppu->scanLineSprites = -1;
-  bus->ppu->frames++;
-
+  
 }
 
 
