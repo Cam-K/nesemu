@@ -21,8 +21,8 @@ Currently a work in progress.
 
 ## How to compile on a Linux system
 ```
-git clone https://github.com/Cam-K/nesemu.git
-cd nesemu
+git clone https://github.com/Cam-K/ernes.git
+cd ernes
 make
 ```
 
@@ -32,10 +32,10 @@ make
 
 ## Usage
 ### To print help
-``./nesemu -h``
+``./ernes -h``
 
 ### To run a game
-``./nesemu -n [FILE]``
+``./ernes -n [FILE]``
 
 
 
