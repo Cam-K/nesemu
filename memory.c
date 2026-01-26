@@ -553,7 +553,8 @@ uint8_t readBus(Bus* bus, uint16_t addr){
 
           // used for SUROM Games (Dragon Warrior 3 and 4)
           uint8_t maskForPrgBank = select256Bank(bus);
-          int divideOffsetIntoMemArr = 1;
+
+          int divideOffsetIntoMemArr = 0;
           // 32 kb mode
           if(((bus->mmc1.control.reg & 0b1100) == 0) || ((bus->mmc1.control.reg & 0b1100) == 0b0100)){
             //printf("32kb mode \n");
@@ -584,11 +585,10 @@ uint8_t readBus(Bus* bus, uint16_t addr){
             }
             // if bit 2 and bit 3 equals 3
           } else if ((bus->mmc1.control.reg & 0b1100) == 0b1100){
-           printf("16 kb last bank fixed mode \n");
+           //printf("16 kb last bank fixed mode \n");
            if(addr <= 0xbfff){
             // 1 + bus->presenceofprgram because we need an offset of either 0 or 1 from this variable when determining whether
             // prgram is present or not.
-              printf("%x \n", bus->mmc1.prgBank.reg);
               return bus->memArr[((bus->mmc1.prgBank.reg & maskForPrgBank) + bus->presenceOfPrgRam + 1)].contents[addr - 0x8000];
             } else if(addr >= 0xc000){
               return bus->memArr[bus->numOfBlocks - 1].contents[addr - 0xc000]; 
