@@ -43,6 +43,8 @@ typedef struct _PPU PPU;
 
 enum DeviceType {Ram, Rom};
 
+
+
 typedef struct _Mem {
   uint8_t* contents;
   enum DeviceType type;  
@@ -133,6 +135,9 @@ typedef struct _Bus {
   // used for UxROM games and AxROM games
   uint8_t bankSelect;
 
+  // used for SUROM Games
+  uint8_t prgRamBankSelect;
+
   // used as the shift register for MMC1 games
   // only 5 bits in length
   MMC1 mmc1;
@@ -160,5 +165,6 @@ void initMmc1(MMC1*);
 uint8_t readPpuBus(PPU*, uint16_t);
 void writePpuBus(PPU*, uint16_t, uint8_t);
 
+uint8_t select256Bank(Bus*);
 
 //#endif

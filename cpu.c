@@ -628,6 +628,7 @@ int decodeAndExecute(CPU* cpu, Bus* bus, uint8_t oppCode){
 void halt(CPU* cpu){
   cpu->haltFlag = 1;
 
+
 }
 
 

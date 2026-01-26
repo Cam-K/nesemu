@@ -330,8 +330,8 @@ void renderScanline(PPU* ppu){
   uint16_t patternTableIndice;
   uint8_t bitPlane1 = 0;
   uint8_t bitPlane2 = 0;
-  uint8_t bit1;
-  uint8_t bit2;
+  uint8_t bitLo;
+  uint8_t bitHi;
   uint16_t bit1_16;
   uint16_t bit2_16;
   uint8_t bitsCombined;
@@ -533,21 +533,21 @@ void renderScanline(PPU* ppu){
         
         // checks to see if the sprite horizontal mirroring bit is set
         if(getBit(ppu->oam[oamIndices[j] + 2], 6) == 0b01000000){
-          bit1 = getBit(bitPlane1, i - ppu->oam[oamIndices[j] + 3]);
-          bit2 = getBit(bitPlane2, i - ppu->oam[oamIndices[j] + 3]);
-          bit1 = bit1 >> (i - ppu->oam[oamIndices[j] + 3]);
-          bit2 = bit2 >> (i - ppu->oam[oamIndices[j] + 3]);
+          bitLo = getBit(bitPlane1, i - ppu->oam[oamIndices[j] + 3]);
+          bitHi = getBit(bitPlane2, i - ppu->oam[oamIndices[j] + 3]);
+          bitLo = bitLo >> (i - ppu->oam[oamIndices[j] + 3]);
+          bitHi = bitHi >> (i - ppu->oam[oamIndices[j] + 3]);
         } else {
-          bit1 = getBitFromLeft(bitPlane1, i - ppu->oam[oamIndices[j] + 3]);
-          bit2 = getBitFromLeft(bitPlane2, i - ppu->oam[oamIndices[j] + 3]);
-          bit1 = bit1 >> findBit(bit1);
-          bit2 = bit2 >> findBit(bit2);
+          bitLo = getBitFromLeft(bitPlane1, i - ppu->oam[oamIndices[j] + 3]);
+          bitHi = getBitFromLeft(bitPlane2, i - ppu->oam[oamIndices[j] + 3]);
+          bitLo = bitLo >> findBit(bitLo);
+          bitHi = bitHi >> findBit(bitHi);
         }
 
 
 
-        bit2 = bit2 << 1;
-        bitsCombined = bit1 | bit2;
+        bitHi = bitHi << 1;
+        bitsCombined = bitHi | bitLo;
 
         // if the colour isn't a transparency pixel, draw the pixel
         if(bitsCombined != 0){

@@ -808,8 +808,8 @@ void startNes(char* romPath, int screenScaling){
       initMemStruct(&(bus.memArr[0]), 0x0800, Ram, TRUE);
 
 
-      for(int i = 1; i < (numOfPrgRoms / 2) + 1; ++i){
-        initMemStruct(&(bus.memArr[i]), 0x8000, Rom, TRUE);
+      for(int i = 0; i < (numOfPrgRoms / 2); ++i){
+        initMemStruct(&(bus.memArr[i + 1]), 0x8000, Rom, TRUE);
       }
       initPpu(bus.ppu, 3);
       initMemStruct(&(bus.ppu->ppubus->memArr[0]), 0x2000, Ram, TRUE);
@@ -817,7 +817,7 @@ void startNes(char* romPath, int screenScaling){
       initMemStruct(&(bus.ppu->ppubus->memArr[2]), 0x400, Ram, TRUE);
       populatePalette(bus.ppu);
 
-      for(int j = 0; j < numOfPrgRoms / 2; ++j){
+      for(int j = 0; j < (numOfPrgRoms / 2); ++j){
         for(int i = 0; i < 2; ++i){
           for(int k = 0; k < 0x4000; ++k){
             if(i == 0){
@@ -1364,18 +1364,18 @@ int jsonTester(char* file, Bus* bus, processorState* state){
 
 void printHelp(){
 
-  puts("NES/6502 emulator \n");
+  puts("erNES: NES/6502 emulator \n");
   puts("Emulates a 6502 mcu as well as an NES");
-  puts("Usage: nesemu [-n][FILE]\n");
-  puts("       nesemu [-p] [DIR] \n");
-  puts("       nesemu [-i] \n");
-  puts("       nesemu [-h] \n");
-  puts("       nesemu [-n] [FILE] -s [SCALING INTEGER] \n");
+  puts("Usage: ernes [-n][FILE]\n");
+  puts("       ernes [-p] [DIR] \n");
+  puts("       ernes [-i] \n");
+  puts("       ernes [-h] \n");
+  puts("       ernes [-n] [FILE] -s [SCALING INTEGER] \n");
   puts("\t -j [FILE] \t starts json tester with specfic json file \n");
   puts("\t -i [DIR] \t starts interpreter with 64k allocated to RAM \n");
   puts("\t -n [FILE] \t starts in NES mode with INES rom file \n");
     puts("\t -s [RESOLUTION SCALING INTEGER] \t integer amount to scale the resolution by (default: 1) \n");
-  puts("\t NOTE: To use -j or -i flags, make sure to set the NESEMU macro in general.h and recompile ");
+  puts("\t NOTE: To use -j or -i flags, make sure to set the NESEMU to 0 macro in general.h and recompile, otherwise keep it set to 1 to compile the NES emulator code");
 
 
   exit(0);
